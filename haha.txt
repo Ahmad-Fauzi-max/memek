@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Hacked Page</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            text-align: center;
+            font-family: monospace;
+        }
+        img {
+            margin-top: 50px;
+            width: 400px;
+            max-width: 90%;
+        }
+        .hacked {
+            color: yellow;
+        }
+    </style>
+</head>
+<body>
+    <img src="https://c.top4top.io/p_341082fo00.jpg" alt="Hacked Image">
+    <p class="hacked"><h1>RAKA <span style="color:white;">adalah saya</span></p>
+    <p style="margin-top: 30px;"><h1>Saya haus akan validasi sebagai heker dan saya adalah orang dibalik akun instagram</br>
+    @anonzeroteen @wellmen17 @boy_exeee @shad0w.r00t</p>
+</body>
+</html>
