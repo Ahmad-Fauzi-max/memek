@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Disita Oleh SonySec07 FT Eeryx_CatFish</title>
+    <meta charset="UTF-8">
+    <meta name="description" content="Owned By Indonesia People">
+    <meta name="keywords" content="Hacked">
+    <meta name="author" content="SonySec07">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css?family=Share+Tech+Mono" rel="stylesheet">
+    <style>
+        body {
+            background-color: white;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .quote {
+            color: #FE2D42;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .teams {
+            font-size: 14px;
+            color: black;
+        }
+
+        .touch-text {
+            margin-top: 10px;
+            font-size: 14px;
+            color: gray;
+            font-weight: bold;
+        }
+
+        .small-text {
+            font-size: 14px;
+        }
+
+        .red-text {
+            color: red;
+        }
+
+        @media screen and (max-width: 768px) {
+            .content {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <img src="https://l.top4top.io/p_3346mxony0.png" width="220" height="220" alt="Logo">
+        <br>Disita Oleh <span class="red-text"><i>SonySec07 FT Eeryx_CatFish</i></span>
+        <br>
+        <p class="small-text">"Wahai orang-orang yang beriman, sesungguhnya (meminum) khamar, berjudi, (berkorban untuk) berhala, dan mengundi nasib dengan panah adalah perbuatan keji (dan) termasuk perbuatan setan. Maka, jauhilah perbuatan-perbuatan itu agar kamu beruntung." (QS. Al-Maidah: 90)</p>
+        <br>
+        <p class="small-text"><i>Greetz</i><br>
+            Pyscodes - CurutG0D403 - Clutsert03 - BentoSec21 - TN.CUPLIS - John Felix - MR.VENOM - HanzRazor - NightBot405 - MR.CULA - M4SKGANS - Inzz - ClayOxtymus1337 - MR.KRIBO - Amigamer404 - Jakarta Blackhat Cyber Crime - MukoMuko Cyber Team - Muslim Cyber Face - FromLammerToMastah - KaliMalang BlackHat Team - Nigeria Cyber Force - FSOCIETY TEAM
+        </p>
+        <a href="https://github.com/johnfelixx/">Github</a>
+        <a href="https://www.instagram.com/kuciinglangka/">Instagram</a>
+    </div>
+    <audio src="https://f.top4top.io/m_3314ypiwg0.mp3" autoplay="1" loop="1">
+    </audio>
+</body>
+</html> 
