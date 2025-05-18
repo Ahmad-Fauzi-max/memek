@@ -1,0 +1,43 @@
+<html>
+<head>
+    <title>Hacked By SonySec07</title>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1" /> 
+    <meta property="og:title" content="Hacked By SonySec07">
+    <meta name="description" content="#FREE PALESTINE">
+    <meta property="og:description" content="#FREE PALESTINE">
+    <meta property="og:image" content="https://get2.fit/quality_restoration_20250324024355550">
+    <meta name="theme-color" content="#fff">
+    <style type='text/css'>body,a:hover{cursor:url(../cur.cursors-4u.net/symbols/sym-1/sym46.cur),progress!important;}</style>
+</head>
+<body bgcolor="white" text="black" oncontextmenu="return false;" onkeydown="return false;" onmousedown="return false;" onclick="play()">
+<style type="text/css">
+    center {
+        font-family: Courier;
+    }
+    img {
+        opacity: 80%;
+    }
+    red {
+        color: red;
+    }
+</style>
+<script language="JavaScript">
+    window.onbeforeunload = confirmExit;
+    function confirmExit() {
+        return "are you sure ? wkwk";
+    }
+</script>
+<table width="100%" height="80%">
+    <td>
+        <center>
+            <small><b> FUCK ISRAEL AMERICAN </small><br>
+            <img src="https://get2.fit/quality_restoration_20250324024355550.jpg" width="220" height="220">
+            <br>Hacked by <red><i>SonySec07<br></i></red><br><b><font size="2">1st... THERE IS NO ISRAEL<br>2nd... THERE IS NO AMERICAN<br>3nd... YOU ARE A TERRORIST STATE<br>... YOU ARE A KILLERS OF CHILDRENS AND INOCENTS<br>... YOUR BARBARIC REALITY IS EXPOSED TO THE WHOLE WORLD<br>... PALESTINE WILL BE FREE INSHALLAH TODAY OR TOMORROW IT´S THE PROMISE OF ALLAH<br>THE END IS VERY SOON<br>MUSLIMS WILL BREACH WALLS AND OPEN GATES<br>IT'S DIVINE PROMISE<br><br><u><b>#FREEPALESTINE</u> <u>#FUCKISRAELAMERICAN</u></br></font><br>
+            <br><small><font size="3" color="gray">johnfelix@mail2tor.co</font></small><br><br><br>
+            <font size="2"><u><i>Greetz</i></u><br>
+            Pyscodes - CurutG0D403 - Clutsert03 - BentoSec21 - TN.CUPLIS - MR.VENOM - Inzz - ClayOxtymus1337 - MR.KRIBO - Amigamer404 - Jakarta Blackhat Cyber Crime - MukoMuko Cyber Team - Muslim Cyber Face - FromLammerToMastah - KaliMalang BlackHat Team - Nigeria Cyber Force - FSOCIETY TEAM</font>
+    </td>
+    <audio src="https://get2.fit/Zalzil%20Amna%20Israel%20-%20Gegarkan%20Keamanan%20Israel%20(Lirik).mp3" autoplay="1" loop="1">
+</table>
