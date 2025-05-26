@@ -1,0 +1,97 @@
+
+<!doctype html>
+<html data-bs-theme="dark" translate="no" lang="in" dir="ltr"> 
+ <head> 
+  <title>Hacked By SonySec07</title> 
+  <meta charset="UTF-8">
+  <meta content="IE=edge" http-equiv="X-UA-Compatible"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1"> 
+  <meta content="max-image-preview:large" name="robots"> 
+  <meta content="index, follow, notranslate" name="robots"> 
+  <meta content="index, follow, notranslate" name="googlebot"> 
+  <meta content="Sorry, Your Website Got Hacked By SonySec07" name="description"> 
+  <meta content="Hacked By SonySec07" name="keywords"> 
+  <meta content="Copyright �️SonySec07- All Right Reserved" name="copyright"> 
+  <link href="https://l.top4top.io/p_3402f043l0.png" rel="manifest"> 
+  <link href="https://l.top4top.io/p_3402f043l0.png" sizes="120x120"> 
+  <link href="https://l.top4top.io/p_3402f043l0.png" sizes="152x152"> 
+  <link href="https://l.top4top.io/p_3402f043l0.png" sizes="180x180"> 
+  <link rel="icon" type="image/x-icon" href="https://l.top4top.io/p_3402f043l0.png">
+  <meta content="Hacked By SonySec07" property="og:title"> 
+  <meta content="Hacked By SonySec07" property="og:site_name"> 
+  <meta content="website" property="og:type"> 
+  <meta content="Sorry, Your Website Got Hacked By SonySec07" property="og:description"> 
+  <meta content="MUKOMUKO CYBER TEAM" property="og:image:alt"> 
+  <meta property="og:image" content="https://l.top4top.io/p_3402f043l0.png"> 
+  <meta content="Hacked By SonySec07" name="twitter:title"> 
+  <meta content="Sorry, Your Website Got Hacked By SonySec07" name="twitter:description"> 
+  <meta content="summary_large_image" name="twitter:card"> 
+  <meta content="Hacked By SonySec07" name="twitter:image:alt"> 
+  <meta content="MUKOMUKO CYBER TEAM" name="twitter:image:alt"> 
+  <meta property="og:image" content="https://l.top4top.io/p_3402f043l0.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous"> 
+  <style type="text/css" media="all">
+    @import url('https://fonts.googleapis.com/css2?family=PT+Sans&display=swap');
+    body {
+      font-family: 'PT Sans', sans-serif;
+    }
+  </style> 
+ </head> 
+ <body class="container align-items-center d-flex justice-content-center" style="height:75vh;"> 
+  <div class="card border-0 shadow"> 
+   <div class="row gap-0 p-4"> 
+    <div class="col-md-4"> 
+     <img src="https://l.top4top.io/p_3402f043l0.png" class="img-fluid w-75 rounded-start mx-auto d-block shadow-0" alt="..."> 
+    </div> 
+    <div class="col-md-8 text-center text-md-start"> 
+     <div class="card-body"> 
+      <h5 class="card-title">Hacked By SonySec07</h5> 
+      <p class="card-text"><font style="italic"></font></p><font style="italic">STAY WITH US, WE ARE THE HURT PEOPLE :)</p><p></p></font> <a href="" class="card-link text-decoration-none text-uppercase text-muted">sayangkamu01011@yahoo.com</a> 
+     </div> 
+    </div> 
+   </div> 
+  </div> 
+  <div class="card mb-3 m-2 border-0 shadow fixed-bottom"> 
+   <div class="row gap-0"> 
+    <div class="col-4"> 
+     <div class="card-body"> 
+      <div class="d-grid m-2"> <button id="play_pause" class="btn btn-outline-primary" type="button" onclick="playPause()"><span id="playPauseText">Play</span></button> 
+      </div> 
+     </div> 
+    </div> 
+    <div class="col-8 mt-4"> 
+     <div class="card-body"> 
+      <div class="progress"> 
+       <div id="progress_bar" class="progress-bar" role="progress_bar" aria-label="Progress" style="width: 0%" aria-valuemin="0" aria-valuemax="100"></div> 
+      </div> 
+     </div> 
+    </div> 
+   </div> 
+  </div> 
+  <script src="https://p3ych.github.io/js/copying.js" type="text/javascript" charset="utf-8"></script> 
+  <script type="text/javascript" charset="utf-8">
+      var audio = new Audio('https://i.top4top.io/m_3076tjqzc0.mp3');
+      var progress_bar = document.getElementById('progress_bar');
+      var playPauseText = document.getElementById('playPauseText');
+      
+      audio.addEventListener('timeupdate', function() {
+        var progress = (audio.currentTime / audio.duration) * 100;
+        progress_bar.style.width = progress + '%';
+      });
+      
+      audio.addEventListener('ended', function() {
+        playPauseText.textContent = 'Play';
+      });
+      
+      function playPause() {
+        if (audio.paused) {
+          audio.play();
+          playPauseText.textContent = 'Pause';
+        } else {
+          audio.pause();
+          playPauseText.textContent = 'Play';
+        }
+      }
+    </script> 
+ </body>
+</html>
