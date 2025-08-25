@@ -1,0 +1,178 @@
+<?php
+/** Adminer - Compact database management
+* @link https://www.adminer.org/
+* @author Jakub Vrana, https://www.vrana.cz/
+* @copyright 2007 Jakub Vrana
+* @license https://www.apache.org/licenses/LICENSE-2.0 Apache License, Version 2.0
+* @license https://www.gnu.org/licenses/gpl-2.0.html GNU General Public License, version 2 (one or other)
+* @version 5.3.0
+*/namespace
+Adminer;const
+VERSION="5.3.0";error_reporting(24575);set_error_handler(function($sc,$uc){return!!preg_match('~^Undefined (array key|offset|index)~',$uc);},E_WARNING|E_NOTICE);$Nc=!preg_match('~^(unsafe_raw)?$~',ini_get("filter.default"));if($Nc||ini_get("filter.default_flags")){foreach(array('_GET','_POST','_COOKIE','_SERVER')as$X){$si=filter_input_array(constant("INPUT$X"),FILTER_UNSAFE_RAW);if($si)$$X=$si;}}if(function_exists("mb_internal_encoding"))mb_internal_encoding("8bit");function
+connection($g=null){return($g?:Db::$instance);}function
+adminer(){return
+Adminer::$instance;}function
+driver(){return
+Driver::$instance;}function
+connect(){$wb=adminer()->credentials();$L=Driver::connect($wb[0],$wb[1],$wb[2]);return(is_object($L)?$L:null);}function
+idf_unescape($v){if(!preg_match('~^[`\'"[]~',$v))return$v;$me=substr($v,-1);return
+str_replace($me.$me,$me,substr($v,1,-1));}function
+q($wh){return
+connection()->quote($wh);}function
+escape_string($X){return
+substr(q($X),1,-1);}function
+idx($ta,$y,$k=null){return($ta&&array_key_exists($y,$ta)?$ta[$y]:$k);}function
+number($X){return
+preg_replace('~[^0-9]+~','',$X);}function
+number_type(){return'((?<!o)int(?!er)|numeric|real|float|double|decimal|money)';}function
+remove_slashes(array$qg,$Nc=false){if(function_exists("get_magic_quotes_gpc")&&get_magic_quotes_gpc()){while(list($y,$X)=each($qg)){foreach($X
+as$ee=>$W){unset($qg[$y][$ee]);if(is_array($W)){$qg[$y][stripslashes($ee)]=$W;$qg[]=&$qg[$y][stripslashes($ee)];}else$qg[$y][stripslashes($ee)]=($Nc?$W:stripslashes($W));}}}}function
+bracket_escape($v,$Aa=false){static$fi=array(':'=>':1',']'=>':2','['=>':3','"'=>':4');return
+strtr($v,($Aa?array_flip($fi):$fi));}function
+min_version($Gi,$_e="",$g=null){$g=connection($g);$bh=$g->server_info;if($_e&&preg_match('~([\d.]+)-MariaDB~',$bh,$B)){$bh=$B[1];$Gi=$_e;}return$Gi&&version_compare($bh,$Gi)>=0;}function
+charset(Db$f){return(min_version("5.5.3",0,$f)?"utf8mb4":"utf8");}function
+ini_bool($Nd){$X=ini_get($Nd);return(preg_match('~^(on|true|yes)$~i',$X)||(int)$X);}function
+sid(){static$L;if($L===null)$L=(SID&&!($_COOKIE&&ini_bool("session.use_cookies")));return$L;}function
+set_password($Fi,$P,$V,$H){$_SESSION["pwds"][$Fi][$P][$V]=($_COOKIE["adminer_key"]&&is_string($H)?array(encrypt_string($H,$_COOKIE["adminer_key"])):$H);}function
+get_password(){$L=get_session("pwds");if(is_array($L))$L=($_COOKIE["adminer_key"]?decrypt_string($L[0],$_COOKIE["adminer_key"]):false);return$L;}function
+get_val($J,$m=0,$mb=null){$mb=connection($mb);$K=$mb->query($J);if(!is_object($K))return
+false;$M=$K->fetch_row();return($M?$M[$m]:false);}function
+get_vals($J,$c=0){$L=array();$K=connection()->query($J);if(is_object($K)){while($M=$K->fetch_row())$L[]=$M[$c];}return$L;}function
+get_key_vals($J,$g=null,$eh=true){$g=connection($g);$L=array();$K=$g->query($J);if(is_object($K)){while($M=$K->fetch_row()){if($eh)$L[$M[0]]=$M[1];else$L[]=$M[0];}}return$L;}function
+get_rows($J,$g=null,$l="<p class='error'>"){$mb=connection($g);$L=array();$K=$mb->query($J);if(is_object($K)){while($M=$K->fetch_assoc())$L[]=$M;}elseif(!$K&&!$g&&$l&&(defined('Adminer\PAGE_HEADER')||$l=="-- "))echo$l.error()."\n";return$L;}function
+unique_array($M,array$x){foreach($x
+as$w){if(preg_match("~PRIMARY|UNIQUE~",$w["type"])){$L=array();foreach($w["columns"]as$y){if(!isset($M[$y]))continue
+2;$L[$y]=$M[$y];}return$L;}}}function
+escape_key($y){if(preg_match('(^([\w(]+)('.str_replace("_",".*",preg_quote(idf_escape("_"))).')([ \w)]+)$)',$y,$B))return$B[1].idf_escape(idf_unescape($B[2])).$B[3];return
+idf_escape($y);}function
+where(array$Z,array$n=array()){$L=array();foreach((array)$Z["where"]as$y=>$X){$y=bracket_escape($y,true);$c=escape_key($y);$m=idx($n,$y,array());$Lc=$m["type"];$L[]=$c.(JUSH=="sql"&&$Lc=="json"?" = CAST(".q($X)." AS JSON)":(JUSH=="sql"&&is_numeric($X)&&preg_match('~\.~',$X)?" LIKE ".q($X):(JUSH=="mssql"&&strpos($Lc,"datetime")===false?" LIKE ".q(preg_replace('~[_%[]~','[\0]',$X)):" = ".unconvert_field($m,q($X)))));if(JUSH=="sql"&&preg_match('~char|text~',$Lc)&&preg_match("~[^ -@]~",$X))$L[]="$c = ".q($X)." COLLATE ".charset(connection())."_bin";}foreach((array)$Z["null"]as$y)$L[]=escape_key($y)." IS NULL";return
+implode(" AND ",$L);}function
+where_check($X,array$n=array()){parse_str($X,$Sa);remove_slashes(array(&$Sa));return
+where($Sa,$n);}function
+where_link($t,$c,$Y,$sf="="){return"&where%5B$t%5D%5Bcol%5D=".urlencode($c)."&where%5B$t%5D%5Bop%5D=".urlencode(($Y!==null?$sf:"IS NULL"))."&where%5B$t%5D%5Bval%5D=".urlencode($Y);}function
+convert_fields(array$d,array$n,array$O=array()){$L="";foreach($d
+as$y=>$X){if($O&&!in_array(idf_escape($y),$O))continue;$ua=convert_field($n[$y]);if($ua)$L
+.=", $ua AS ".idf_escape($y);}return$L;}function
+cookie($D,$Y,$ue=2592000){header("Set-Cookie: $D=".urlencode($Y).($ue?"; expires=".gmdate("D, d M Y H:i:s",time()+$ue)." GMT":"")."; path=".preg_replace('~\?.*~','',$_SERVER["REQUEST_URI"]).(HTTPS?"; secure":"")."; HttpOnly; SameSite=lax",false);}function
+get_settings($sb){parse_str($_COOKIE[$sb],$fh);return$fh;}function
+get_setting($y,$sb="adminer_settings"){$fh=get_settings($sb);return$fh[$y];}function
+save_settings(array$fh,$sb="adminer_settings"){$Y=http_build_query($fh+get_settings($sb));cookie($sb,$Y);$_COOKIE[$sb]=$Y;}function
+restart_session(){if(!ini_bool("session.use_cookies")&&(!function_exists('session_status')||session_status()==1))session_start();}function
+stop_session($Sc=false){$_i=ini_bool("session.use_cookies");if(!$_i||$Sc){session_write_close();if($_i&&@ini_set("session.use_cookies",'0')===false)session_start();}}function&get_session($y){return$_SESSION[$y][DRIVER][SERVER][$_GET["username"]];}function
+set_session($y,$X){$_SESSION[$y][DRIVER][SERVER][$_GET["username"]]=$X;}function
+auth_url($Fi,$P,$V,$j=null){$wi=remove_from_uri(implode("|",array_keys(SqlDriver::$drivers))."|username|ext|".($j!==null?"db|":"").($Fi=='mssql'||$Fi=='pgsql'?"":"ns|").session_name());preg_match('~([^?]*)\??(.*)~',$wi,$B);return"$B[1]?".(sid()?SID."&":"").($Fi!="server"||$P!=""?urlencode($Fi)."=".urlencode($P)."&":"").($_GET["ext"]?"ext=".urlencode($_GET["ext"])."&":"")."username=".urlencode($V).($j!=""?"&db=".urlencode($j):"").($B[2]?"&$B[2]":"");}function
+is_ajax(){return($_SERVER["HTTP_X_REQUESTED_WITH"]=="XMLHttpRequest");}function
+redirect($A,$C=null){if($C!==null){restart_session();$_SESSION["messages"][preg_replace('~^[^?]*~','',($A!==null?$A:$_SERVER["REQUEST_URI"]))][]=$C;}if($A!==null){if($A=="")$A=".";header("Location: $A");exit;}}function
+query_redirect($J,$A,$C,$yg=true,$zc=true,$Hc=false,$Sh=""){if($zc){$sh=microtime(true);$Hc=!connection()->query($J);$Sh=format_time($sh);}$nh=($J?adminer()->messageQuery($J,$Sh,$Hc):"");if($Hc){adminer()->error
+.=error().$nh.script("messagesPrint();")."<br>";return
+false;}if($yg)redirect($A,$C.$nh);return
+true;}class
+Queries{static$queries=array();static$start=0;}function
+queries($J){if(!Queries::$start)Queries::$start=microtime(true);Queries::$queries[]=(preg_match('~;$~',$J)?"DELIMITER ;;\n$J;\nDELIMITER ":$J).";";return
+connection()->query($J);}function
+apply_queries($J,array$T,$vc='Adminer\table'){foreach($T
+as$R){if(!queries("$J ".$vc($R)))return
+false;}return
+true;}function
+queries_redirect($A,$C,$yg){$tg=implode("\n",Queries::$queries);$Sh=format_time(Queries::$start);return
+query_redirect($tg,$A,$C,$yg,false,!$yg,$Sh);}function
+format_time($sh){return
+lang(0,max(0,microtime(true)-$sh));}function
+relative_uri(){return
+str_replace(":","%3a",preg_replace('~^[^?]*/([^?]*)~','\1',$_SERVER["REQUEST_URI"]));}function
+remove_from_uri($Lf=""){return
+substr(preg_replace("~(?<=[?&])($Lf".(SID?"":"|".session_name()).")=[^&]*&~",'',relative_uri()."&"),0,-1);}function
+get_file($y,$Hb=false,$Nb=""){$Mc=$_FILES[$y];if(!$Mc)return
+null;foreach($Mc
+as$y=>$X)$Mc[$y]=(array)$X;$L='';foreach($Mc["error"]as$y=>$l){if($l)return$l;$D=$Mc["name"][$y];$ai=$Mc["tmp_name"][$y];$ob=file_get_contents($Hb&&preg_match('~\.gz$~',$D)?"compress.zlib://$ai":$ai);if($Hb){$sh=substr($ob,0,3);if(function_exists("iconv")&&preg_match("~^\xFE\xFF|^\xFF\xFE~",$sh))$ob=iconv("utf-16","utf-8",$ob);elseif($sh=="\xEF\xBB\xBF")$ob=substr($ob,3);}$L
+.=$ob;if($Nb)$L
+.=(preg_match("($Nb\\s*\$)",$ob)?"":$Nb)."\n\n";}return$L;}function
+upload_error($l){$Ge=($l==UPLOAD_ERR_INI_SIZE?ini_get("upload_max_filesize"):0);return($l?lang(1).($Ge?" ".lang(2,$Ge):""):lang(3));}function
+repeat_pattern($Xf,$se){return
+str_repeat("$Xf{0,65535}",$se/65535)."$Xf{0,".($se%65535)."}";}function
+is_utf8($X){return(preg_match('~~u',$X)&&!preg_match('~[\0-\x8\xB\xC\xE-\x1F]~',$X));}function
+format_number($X){return
+strtr(number_format($X,0,".",lang(4)),preg_split('~~u',lang(5),-1,PREG_SPLIT_NO_EMPTY));}function
+friendly_url($X){return
+preg_replace('~\W~i','-',$X);}function
+table_status1($R,$Ic=false){$L=table_status($R,$Ic);return($L?reset($L):array("Name"=>$R));}function
+column_foreign_keys($R){$L=array();foreach(adminer()->foreignKeys($R)as$p){foreach($p["source"]as$X)$L[$X][]=$p;}return$L;}function
+fields_from_edit(){$L=array();foreach((array)$_POST["field_keys"]as$y=>$X){if($X!=""){$X=bracket_escape($X);$_POST["function"][$X]=$_POST["field_funs"][$y];$_POST["fields"][$X]=$_POST["field_vals"][$y];}}foreach((array)$_POST["fields"]as$y=>$X){$D=bracket_escape($y,true);$L[$D]=array("field"=>$D,"privileges"=>array("insert"=>1,"update"=>1,"where"=>1,"order"=>1),"null"=>1,"auto_increment"=>($y==driver()->primary),);}return$L;}function
+dump_headers($zd,$Ue=false){$L=adminer()->dumpHeaders($zd,$Ue);$If=$_POST["output"];if($If!="text")header("Content-Disposition: attachment; filename=".adminer()->dumpFilename($zd).".$L".($If!="file"&&preg_match('~^[0-9a-z]+$~',$If)?".$If":""));session_write_close();if(!ob_get_level())ob_start(null,4096);ob_flush();flush();return$L;}function
+dump_csv(array$M){foreach($M
+as$y=>$X){if(preg_match('~["\n,;\t]|^0|\.\d*0$~',$X)||$X==="")$M[$y]='"'.str_replace('"','""',$X).'"';}echo
+implode(($_POST["format"]=="csv"?",":($_POST["format"]=="tsv"?"\t":";")),$M)."\r\n";}function
+apply_sql_function($r,$c){return($r?($r=="unixepoch"?"DATETIME($c, '$r')":($r=="count distinct"?"COUNT(DISTINCT ":strtoupper("$r("))."$c)"):$c);}function
+get_temp_dir(){$L=ini_get("upload_tmp_dir");if(!$L){if(function_exists('sys_get_temp_dir'))$L=sys_get_temp_dir();else{$o=@tempnam("","");if(!$o)return'';$L=dirname($o);unlink($o);}}return$L;}function
+file_open_lock($o){if(is_link($o))return;$q=@fopen($o,"c+");if(!$q)return;chmod($o,0660);if(!flock($q,LOCK_EX)){fclose($q);return;}return$q;}function
+file_write_unlock($q,$Bb){rewind($q);fwrite($q,$Bb);ftruncate($q,strlen($Bb));file_unlock($q);}function
+file_unlock($q){flock($q,LOCK_UN);fclose($q);}function
+first(array$ta){return
+reset($ta);}function
+password_file($h){$o=get_temp_dir()."/adminer.key";if(!$h&&!file_exists($o))return'';$q=file_open_lock($o);if(!$q)return'';$L=stream_get_contents($q);if(!$L){$L=rand_string();file_write_unlock($q,$L);}else
+file_unlock($q);return$L;}function
+rand_string(){return
+md5(uniqid(strval(mt_rand()),true));}function
+select_value($X,$_,array$m,$Rh){if(is_array($X)){$L="";foreach($X
+as$ee=>$W)$L
+.="<tr>".($X!=array_values($X)?"<th>".h($ee):"")."<td>".select_value($W,$_,$m,$Rh);return"<table>$L</table>";}if(!$_)$_=adminer()->selectLink($X,$m);if($_===null){if(is_mail($X))$_="mailto:$X";if(is_url($X))$_=$X;}$L=adminer()->editVal($X,$m);if($L!==null){if(!is_utf8($L))$L="\0";elseif($Rh!=""&&is_shortable($m))$L=shorten_utf8($L,max(0,+$Rh));else$L=h($L);}return
+adminer()->selectVal($L,$_,$m,$X);}function
+is_mail($ic){$va='[-a-z0-9!#$%&\'*+/=?^_`{|}~]';$Wb='[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])';$Xf="$va+(\\.$va+)*@($Wb?\\.)+$Wb";return
+is_string($ic)&&preg_match("(^$Xf(,\\s*$Xf)*\$)i",$ic);}function
+is_url($wh){$Wb='[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])';return
+preg_match("~^(https?)://($Wb?\\.)+$Wb(:\\d+)?(/.*)?(\\?.*)?(#.*)?\$~i",$wh);}function
+is_shortable(array$m){return
+preg_match('~char|text|json|lob|geometry|point|linestring|polygon|string|bytea~',$m["type"]);}function
+count_rows($R,array$Z,$Xd,array$s){$J=" FROM ".table($R).($Z?" WHERE ".implode(" AND ",$Z):"");return($Xd&&(JUSH=="sql"||count($s)==1)?"SELECT COUNT(DISTINCT ".implode(", ",$s).")$J":"SELECT COUNT(*)".($Xd?" FROM (SELECT 1$J GROUP BY ".implode(", ",$s).") x":$J));}function
+slow_query($J){$j=adminer()->database();$Th=adminer()->queryTimeout();$jh=driver()->slowQuery($J,$Th);$g=null;if(!$jh&&support("kill")){$g=connect();if($g&&($j==""||$g->select_db($j))){$ge=get_val(connection_id(),0,$g);echo
+script("const timeout = setTimeout(() => { ajax('".js_escape(ME)."script=kill', function () {}, 'kill=$ge&token=".get_token()."'); }, 1000 * $Th);");}}ob_flush();flush();$L=@get_key_vals(($jh?:$J),$g,false);if($g){echo
+script("clearTimeout(timeout);");ob_flush();flush();}return$L;}function
+get_token(){$wg=rand(1,1e6);return($wg^$_SESSION["token"]).":$wg";}function
+verify_token(){list($bi,$wg)=explode(":",$_POST["token"]);return($wg^$_SESSION["token"])==$bi;}function
+lzw_decompress($Ga){$Sb=256;$Ha=8;$ab=array();$Hg=0;$Ig=0;for($t=0;$t<strlen($Ga);$t++){$Hg=($Hg<<8)+ord($Ga[$t]);$Ig+=8;if($Ig>=$Ha){$Ig-=$Ha;$ab[]=$Hg>>$Ig;$Hg&=(1<<$Ig)-1;$Sb++;if($Sb>>$Ha)$Ha++;}}$Rb=range("\0","\xFF");$L="";$Pi="";foreach($ab
+as$t=>$Za){$hc=$Rb[$Za];if(!isset($hc))$hc=$Pi.$Pi[0];$L
+.=$hc;if($t)$Rb[]=$Pi.$hc[0];$Pi=$hc;}return$L;}function
+script($lh,$ei="\n"){return"<script".nonce().">$lh</script>$ei";}function
+script_src($xi,$Kb=false){return"<script src='".h($xi)."'".nonce().($Kb?" defer":"")."></script>\n";}function
+nonce(){return' nonce="'.get_nonce().'"';}function
+input_hidden($D,$Y=""){return"<input type='hidden' name='".h($D)."' value='".h($Y)."'>\n";}function
+input_token(){return
+input_hidden("token",get_token());}function
+target_blank(){return' target="_blank" rel="noreferrer noopener"';}function
+h($wh){return
+str_replace("\0","&#0;",htmlspecialchars($wh,ENT_QUOTES,'utf-8'));}function
+nl_br($wh){return
+str_replace("\n","<br>",$wh);}function
+checkbox($D,$Y,$Ua,$ie="",$rf="",$Ya="",$ke=""){$L="<input type='checkbox' name='$D' value='".h($Y)."'".($Ua?" checked":"").($ke?" aria-labelledby='$ke'":"").">".($rf?script("qsl('input').onclick = function () { $rf };",""):"");return($ie!=""||$Ya?"<label".($Ya?" class='$Ya'":"").">$L".h($ie)."</label>":$L);}function
+optionlist($vf,$Wg=null,$Ai=false){$L="";foreach($vf
+as$ee=>$W){$wf=array($ee=>$W);if(is_array($W)){$L
+.='<optgroup label="'.h($ee).'">';$wf=$W;}foreach($wf
+as$y=>$X)$L
+.='<option'.($Ai||is_string($y)?' value="'.h($y).'"':'').($Wg!==null&&($Ai||is_string($y)?(string)$y:$X)===$Wg?' selected':'').'>'.h($X);if(is_array($W))$L
+.='</optgroup>';}return$L;}function
+html_select($D,array$vf,$Y="",$qf="",$ke=""){static$ie=0;$je="";if(!$ke&&substr($vf[""],0,1)=="("){$ie++;$ke="label-$ie";$je="<option value='' id='$ke'>".h($vf[""]);unset($vf[""]);}return"<select name='".h($D)."'".($ke?" aria-labelledby='$ke'":"").">".$je.optionlist($vf,$Y)."</select>".($qf?script("qsl('select').onchange = function () { $qf };",""):"");}function
+html_radios($D,array$vf,$Y="",$ah=""){$L="";foreach($vf
+as$y=>$X)$L
+.="<label><input type='radio' name='".h($D)."' value='".h($y)."'".($y==$Y?" checked":"").">".h($X)."</label>$ah";return$L;}function
+confirm($C="",$Xg="qsl('input')"){return
+script("$Xg.onclick = () => confirm('".($C?js_escape($C):lang(6))."');","");}function
+print_fieldset($u,$re,$Ji=false){echo"<fieldset><legend>","<a href='#fieldset-$u'>$re</a>",script("qsl('a').onclick = partial(toggle, 'fieldset-$u');",""),"</legend>","<div id='fieldset-$u'".($Ji?"":" class='hidden'").">\n";}function
+bold($Ja,$Ya=""){return($Ja?" class='active $Ya'":($Ya?" class='$Ya'":""));}function
+js_escape($wh){return
+addcslashes($wh,"\r\n'\\/");}function
+pagination($F,$zb){return" ".($F==$zb?$F+1:'<a href="'.h(remove_from_uri("page").($F?"&page=$F".($_GET["next"]?"&next=".urlencode($_GET["next"]):""):"")).'">'.($F+1)."</a>");}function
+hidden_fields(array$qg,array$Bd=array(),$jg=''){$L=false;foreach($qg
+as$y=>$X){if(!in_array($y,$Bd)){if(is_array($X))hidden_fields($X,array(),$y);else{$L=true;echo
+input_hidden(($jg?$jg."[$y]":$y),$X);}}}return$L;}function
+hidden_fields_get(){echo(sid()?input_hidden(session_name(),session_id()):''),(SERVER!==null?input_hidden(DRIVER,SERVER):""),input_hidden("username",$_GET["username"]);}function
+enum_input($U,$wa,array$m,$Y,$lc=null){preg_match_all("~'((?:[^']|'')*)'~",$m["length"],$Be);$L=($lc!==null?"<label><input type='$U'$wa value='$lc'".((is_array($Y)?in_array($lc,$Y):$Y===$lc)?" checked":"")."><i>".lang(7)."</i></label>":"");foreach($Be[1]as$t=>$X){$X=stripcslashes(str_replace("''","'",$X));$Ua=(is_array($Y)?in_array($X,$Y):$Y===$X);$L
+.=" <label><input type='$U'$wa value='".h($X)."'".($Ua?' checked':'').'>'.h(adminer()->editVal($X,$m)).'</label>';}return$L;}function
+input(array$m,$Y,$r,$_a=false){$D=h(bracket_escape($m["field"]));echo"<td class='function'>";if(is_array($Y)&&!$r){$Y=json_encode($Y,128|64|256);$r="json";}$Gg=(JUSH=="mssql"&&$m["auto_increment"]);if($Gg&&!$_POST["save"])$r=null;$bd=(isset($_GET["select"])||$Gg?array("orig"=>lang(8)):array())+adminer()->editFunctions($m);$Tb=stripos($m["default"],"GENERATED ALWAYS AS ")===0?" disabled=''":"";$wa=" name='fields[$D]'$Tb".($_a?" autofocus":"");$rc=driver()->enumLength($m);if($rc){$m["type"]="enum";$m["length"]=$rc;}echo
+driver()->unconvertFunction($m)." ";$R=$_GET["edit"]?:$_GET["select"];if($m["type"]=="enum")echo
+h($bd[""])."<td>".adminer()->editInput($R,$m,$wa,$Y);else{$nd=(in_array($r,$bd)||isset($bd[$r]));echo(count($bd)>1?"<select name='function[$D]'$Tb>".optionlist($bd,$r===null||$nd?$r:"")."</select>".on_help("event.target.value.replace(/^SQL\$/, '')",1).script("qsl('select').onchange = functionChange;",""):h(reset($bd))).'<td>';$Pd=adminer()->editInput($R,$m,$wa,$Y);if($Pd!="")echo$Pd;elseif(preg_match('~bool~',$m["type"]))echo"<input type='hidden'$wa value='0'>"."<input type='checkbox'".(preg_match('~^(1|t|true|y|yes|on)$~i',$Y)?" checked='checked'":"")."$wa value='1'>";elseif($m["type"]=="set"){preg_match_all("~'((?:[^']|'')*)'~",$m["length"],$Be);foreach($Be[1]as$t=>$X){$X=stripcslashes(str_replace("''","'",$X));$Ua=in_array($X,explode(",",$Y),true);echo" <label><input type='checkbox' name='fields[$D][$t]' value='".h($X)."'".($Ua?' checked':'').">".h(adminer()->editVal($X,$m)).'</label>';}}elseif(preg_match('~blob|bytea|raw|file~',$m["type"])&&ini_bool("file_uploads"))echo"<input type='file' name='fields-$D'>";elseif($r=="json"||preg_match('~^jsonb?$~',$m["type"]))echo"<textarea$wa cols='50' rows='12' class='jush-js'>".h($Y).'</textarea>';elseif(($Qh=preg_match('~text|lob|memo~i',$m["type"]))||preg_match("~\n~",$Y)){if($Qh&&JUSH!="sqlite")$wa
+.=" cols='50' rows='12'";else{$N=min(12,substr_count($Y,"\n")+1);$wa
+.=" cols='30' rows='$N'";}echo"<textarea$wa>".h($Y).'</textarea>';}else{$ni=driver()->types();$Ie=(!preg_match('~int~',$m["type"])&&preg_match('~^(\d+)(,(\d+))?$~',$m["length"],$B)?((preg_match("~binary~",$m["type"])?2:1)*$B[1]+($B[3]?1:0)+($B[2]&&!$m["unsigned"]?1:0)):($ni[$m["type"]]?$ni[$m["type"]]+($m["unsigned"]?0:1):0));if(JUSH=='sql'&&min_version(5.6)&&preg_match('~time~',$m["type"]))$Ie+=7;echo"<input".((!$nd||$r==="")&&preg_match('~(?<!o)int(?!er)~',$m["type"])&&!preg_match('~\[\]~',$m["full_type"])?" type='number'":"")." value='".h($Y)."'".($Ie?" data-maxlength='$Ie'":"").(preg_match('~char|binary~',$m["type"])&&$Ie>20?" size='".($Ie>99?60:40)."'":"")."$wa>";}echo
+adminer()->editHint($R,$m,$Y);$Oc=0;foreach($bd
+as$y=>$X){if($y===""||!$X)break;$Oc++;}if($Oc&&count($bd)>1)echo
+script("qsl('td').oninput = partial(skipOriginal, $Oc);");}}function
+process_input(array$m){if(stripos($m["default"],"GENERATED ALWAY
