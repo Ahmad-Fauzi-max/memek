@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hacked By JohnFelix</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    height: 100%;
+    background: black;
+    overflow: hidden;
+    font-family: 'Share Tech Mono', monospace;
+    color: #CCCCCC;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 1px,
+      rgba(0,0,0,0.15) 2px
+    );
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    z-index: 0;
+  }
+
+  .container {
+    position: absolute;
+    top:50%; left:50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 2;
+    animation: fadeIn 2s ease-out;
+  }
+
+  .skull {
+    width: 230px;
+    margin-bottom: 20px;
+    animation: pulse 2s infinite, neonGlow 3s infinite alternate;
+  }
+
+  .text {
+    font-size: 2.5em;
+    font-weight: bold;
+    text-shadow: 0 0 5px #AAA, 0 0 15px #888, 0 0 30px #666;
+    animation: glitch 2s infinite;
+    color: #CCCCCC;
+  }
+
+  .dud { color: #555; }
+
+  .subtext {
+    font-size: 1.2em;
+    margin-top: 10px;
+    color: #DDDDDD;
+    text-shadow: 0 0 5px #000000aa;
+    user-select: none;
+  }
+
+  .quote {
+    position: fixed;
+    bottom: 20px;
+    width: 100%;
+    text-align: center;
+    font-size: 1em;
+    user-select: none;
+    pointer-events: none;
+    text-shadow: 0 0 5px #000000aa;
+    z-index: 2;
+    color: #AAA;
+  }
+
+  @keyframes glitch {
+    0% { text-shadow: 2px 2px #AAA, -2px -2px #666; }
+    20% { text-shadow: -2px 1px #999, 2px -2px #AAA; }
+    40% { text-shadow: 1px -1px #CCC, -1px 2px #666; }
+    60% { text-shadow: 3px 0px #888, -3px 0px #BBB; }
+    80% { text-shadow: 0 0 10px #CCC, 0 0 30px #AAA; }
+    100% { text-shadow: 2px 2px #AAA, -2px -2px #666; }
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  @keyframes neonGlow {
+    from { filter: drop-shadow(0 0 10px #AAA); }
+    to { filter: drop-shadow(0 0 25px #666); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -60%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+  }
+
+  /* Popup */
+  #custom-popup {
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.88);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    z-index:9999;
+    animation:fadeIn 1s ease-out, shake 0.5s infinite;
+    color:#FFF;
+    text-align:center;
+  }
+  @keyframes shake {
+    0% { transform:translate(0,0); }
+    25% { transform:translate(3px, -3px); }
+    50% { transform:translate(-3px, 3px); }
+    75% { transform:translate(3px, 3px); }
+    100% { transform:translate(0,0); }
+  }
+  .popup-title {
+    font-size:2.5em;
+    text-shadow:0 0 10px red,0 0 20px yellow;
+    animation:glitch 2s infinite;
+  }
+  .popup-text {
+    max-width:600px;
+    margin-top:15px;
+    color:#CCC;
+    font-size:1.2em;
+  }
+  .popup-btn {
+    margin-top:25px;
+    padding:10px 25px;
+    font-size:1em;
+    background:#000;
+    color:#FFD700;
+    border:2px solid #FFD700;
+    cursor:pointer;
+    transition:0.3s;
+  }
+  .popup-btn:hover {
+    background:#FFD700;
+    color:#000;
+  }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<!-- Popup -->
+<div id="custom-popup">
+  <h1 class="popup-title">⚠ INDONESIA GELAP! ⚠</h1>
+  <p class="popup-text">
+    Your system security has been breached.<br>
+    This is a message from <b style="color:#FFD700;">JohnFelix</b>.
+  </p>
+  <button class="popup-btn" onclick="closePopup()">OK</button>
+</div>
+<audio id="alarm" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+
+<div class="container">
+  <img src="https://b.top4top.io/p_351622m5b1.jpg" class="skull">
+  <div class="text">LOADING...</div>
+  <div class="subtext">Hello Indonesiaku! Kami Bukan Penjahat! Kami adalah saksi dari. Kebohongan yang kalian rawat!</div>
+</div>
+
+<div class="quote">Greetz : JohnFelix - ./RAZOR - SLX_94 - DoremiXcode - 4N4KSYNT4X - Hanz Razor - NightBot405 - JandaGans1337 - Mr Kaktus/Astroboy - MUKOMUKO CYBER TEAM - KALIMALANG BLACKHAT TEAM - INDOHAXSEC - NIGERIA CYBER FORCE - FRIENDS| johnfelix@mail2tor.co</div>
+
+<audio id="bg-music" src="https://k.top4top.io/m_35182yy7e1.mp3"></audio>
+
+<script>
+/* Popup control */
+function closePopup(){
+  document.getElementById('custom-popup').style.display='none';
+  document.getElementById('bg-music').play().catch(()=>{});
+}
+window.onload = () => {
+  document.getElementById('alarm').play().catch(()=>{});
+};
+
+/* Canvas setup */
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const particles = [];
+const particleCount = 100;
+const greys = ["#AAAAAA", "#888888", "#666666", "#CCCCCC", "#BBBBBB"];
+
+for (let i = 0; i < particleCount; i++) {
+  particles.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.8,
+    vy: (Math.random() - 0.5) * 0.8
+  });
+}
+
+const letters = "01ABCDEFGHIJKLMNOPQRSTUVWXYZ#$%^&*";
+const fontSize = 14;
+const columns = canvas.width / fontSize;
+const drops = Array(Math.floor(columns)).fill(1);
+
+function draw() {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < drops.length; i++) {
+    ctx.fillStyle = greys[Math.floor(Math.random() * greys.length)];
+    ctx.font = fontSize + "px monospace";
+    const text = letters.charAt(Math.floor(Math.random() * letters.length));
+    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+      drops[i] = 0;
+    }
+    drops[i]++;
+  }
+
+  for (let i = 0; i < particleCount; i++) {
+    let p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2);
+    ctx.fillStyle = greys[Math.floor(Math.random() * greys.length)];
+    ctx.fill();
+
+    for (let j = i + 1; j < particleCount; j++) {
+      let q = particles[j];
+      let dx = p.x - q.x, dy = p.y - q.y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 100) {
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(q.x, q.y);
+        ctx.strokeStyle = greys[Math.floor(Math.random() * greys.length)] + "55";
+        ctx.stroke();
+      }
+    }
+  }
+
+  requestAnimationFrame(draw);
+}
+draw();
+
+/* Scramble Text Effect */
+class TextScramble {
+  constructor(el) {
+    this.el = el;
+    this.chars = '!@#$%^&*()_+=-{}[]|:;<>,.?/~';
+    this.update = this.update.bind(this);
+  }
+  setText(newText) {
+    const oldText = this.el.innerText;
+    const length = Math.max(oldText.length, newText.length);
+    const promise = new Promise(resolve => this.resolve = resolve);
+    this.queue = [];
+    for (let i = 0; i < length; i++) {
+      const from = oldText[i] || '';
+      const to = newText[i] || '';
+      const start = Math.floor(Math.random() * 40);
+      const end = start + Math.floor(Math.random() * 40);
+      this.queue.push({ from, to, start, end });
+    }
+    cancelAnimationFrame(this.frameRequest);
+    this.frame = 0;
+    this.update();
+    return promise;
+  }
+  update() {
+    let output = '';
+    let complete = 0;
+    for (let i = 0, n = this.queue.length; i < n; i++) {
+      let { from, to, start, end, char } = this.queue[i];
+      if (this.frame >= end) {
+        complete++;
+        output += to;
+      } else if (this.frame >= start) {
+        if (!char || Math.random() < 0.28) {
+          char = this.randomChar();
+          this.queue[i].char = char;
+        }
+        output += `<span class="dud">${char}</span>`;
+      } else {
+        output += from;
+      }
+    }
+    this.el.innerHTML = output;
+    if (complete === this.queue.length) {
+      this.resolve();
+    } else {
+      this.frameRequest = requestAnimationFrame(this.update);
+      this.frame++;
+    }
+  }
+  randomChar() {
+    return this.chars[Math.floor(Math.random() * this.chars.length)];
+  }
+}
+
+const phrases = [
+  'Hacked By JohnFelix',
+  'We Are MUKOMUKO CYBER TEAM',
+  'You fear chaos, but you created it',
+  'Afraid of the flag we raise? You should fear the people standing behind it'
+];
+const el = document.querySelector('.text');
+const fx = new TextScramble(el);
+let counter = 0;
+const next = () => {
+  fx.setText(phrases[counter]).then(() => {
+    setTimeout(next, 2500);
+  });
+  counter = (counter + 1) % phrases.length;
+};
+next();
+</script>
+</body>
+</html>
