@@ -1,0 +1,43 @@
+<html>
+<head>
+    <title>Hacked By JohnFelix777</title>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1" /> 
+    <meta property="og:title" content="Hacked By JohnFelix777">
+    <meta name="description" content="wh00pz ! your website security get down">
+    <meta property="og:description" content="wh00pz ! your website security get down">
+    <meta property="og:image" content="https://e.top4top.io/p_368017g520.png">
+    <meta name="theme-color" content="#fff">
+    <style type='text/css'>body,a:hover{cursor:url(../cur.cursors-4u.net/symbols/sym-1/sym46.cur),progress!important;}</style>
+</head>
+<body bgcolor="white" text="black" oncontextmenu="return false;" onkeydown="return false;" onmousedown="return false;" onclick="play()">
+<style type="text/css">
+    center {
+        font-family: Courier;
+    }
+    img {
+        opacity: 80%;
+    }
+    red {
+        color: red;
+    }
+</style>
+<script language="JavaScript">
+    window.onbeforeunload = confirmExit;
+    function confirmExit() {
+        return "are you sure ? wkwk";
+    }
+</script>
+<table width="100%" height="80%">
+    <td>
+        <center>
+            <small> 4 BROTHER </small><br>
+            <img src="https://e.top4top.io/p_368017g520.png" width="220" height="220">
+            <br>Hacked by <red><i>JohnFelix777</i></red><br><font size="2">wh00pz ! your website security get down<br>patch it before something bad happens</br><br></font><br>
+            <br><small><font size="1" color="gray">johnfelix777@mail2tor.co</font></small><br><br><br>
+            <font size="2"><i>Greetz</i><br>
+            Pyscodes - CurutG0D403 - Clutsert03 - BentoSec21 - TN.CUPLIS - NightBot405 - SLX_94 - HanzRazor - ./RAZOR  - MR.CULA - BCEVM - M4SKGANS - Fitwilliamx1337 - MrKaktus/AstroBoy - Amigamer404 - Jakarta Blackhat Cyber Crime - MukoMuko Cyber Team - Kalimalang BlackHat Team - Nigeria Cyber Force</font>
+    </td>
+    <audio src="https://cdn.jsdelivr.net/gh/Ahmad-Fauzi-max/memek@main/memek.mp3" autoplay="1" loop="1">
+</table>
