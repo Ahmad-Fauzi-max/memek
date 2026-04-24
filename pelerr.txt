@@ -34,7 +34,7 @@
         <center>
             <small></small><br>
             <img src="https://i.pinimg.com/originals/25/3e/cf/253ecf34e5a1824cca18cd76ab675d34.gif" width="220" height="220">
-            <br>Hacked by <red><i>SonySec07</i></red><br><font size="2">"If the sound of your laughter with another man makes you happy, then the sound of your crying will be a joy for me."</br><br></font><br>
+            <p><br>Hacked by <red><i>SonySec07</i></red><br><p><font size="2">"If the sound of your laughter with another man makes you happy, then the sound of your crying will be a joy for me."</br><br></font>
             <br><small><font size="1" color="gray">overload0x777@mail2tor.co</font></small><br><br><br>
     </td>
     <audio src="https://cdn.jsdelivr.net/gh/Ahmad-Fauzi-max/memek@main/memek.mp3" autoplay="1" loop="1">
